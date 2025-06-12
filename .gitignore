@@ -7,10 +7,7 @@ __pycache__/
 env/
 venv/
 ENV/
-.venv
-*.egg-info/
-dist/
-build/
+.env
 
 # Django
 *.log
@@ -18,38 +15,20 @@ build/
 *.pyc
 local_settings.py
 db.sqlite3
+db.sqlite3-journal
 media/
 staticfiles/
-.env
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Docker
-.dockerignore
-
-# Test coverage
-htmlcov/
-.coverage
-.coverage.*
-coverage.xml
-*.cover
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Environments
+# Project specific
+*.sqlite3
 .env.local
-.env.*.local

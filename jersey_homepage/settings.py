@@ -25,12 +25,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'django.contrib.humanize',  # Add this
+    'authentication',  # Your existing auth app
+    'event_management',
     # Our apps
-    'events',
+    # 'events',
     
     # Third party apps (we'll add these as needed)
     # 'django_htmx',
+
 ]
 
 MIDDLEWARE = [
@@ -105,6 +108,7 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
+
 # Media files
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -113,7 +117,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom User Model
-AUTH_USER_MODEL = 'events.User'
+AUTH_USER_MODEL = 'authentication.User'
 
 # Login/Logout URLs
 LOGIN_URL = 'login'
