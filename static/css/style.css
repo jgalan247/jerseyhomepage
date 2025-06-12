@@ -1,0 +1,8 @@
+/* Custom styles for Jersey Homepage */
+.hero-section {
+    min-height: 400px;
+}
+
+.navbar-brand:hover {
+    color: var(--jersey-gold) !important;
+}

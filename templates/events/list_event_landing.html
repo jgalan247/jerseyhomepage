@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}List Your Event - Jersey Homepage{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="text-center mb-4">List Your Event on Jersey Homepage</h1>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3>Reach Thousands of Jersey Residents</h3>
+                    <p>Jersey Homepage is the premier destination for discovering events across the island. List your event with us to:</p>
+                    <ul>
+                        <li>Reach a targeted local audience</li>
+                        <li>Sell tickets online with secure payment processing</li>
+                        <li>Manage attendees and track sales</li>
+                        <li>Promote your event through our platform</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="row text-center">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Free Events</h5>
+                            <p class="card-text">List community events, meetups, and free activities at no cost.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Paid Events</h5>
+                            <p class="card-text">Sell tickets with our integrated Stripe payment system.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">Easy Management</h5>
+                            <p class="card-text">Track sales, manage attendees, and update event details.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                {% if user.is_authenticated %}
+                    <p class="lead mb-4">Ready to create your first event?</p>
+                    <a href="{% url 'create_event' %}" class="btn btn-primary btn-lg">Create Event Now</a>
+                {% else %}
+                    <p class="lead mb-4">Sign up to start listing your events</p>
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg me-3">Sign Up as Organizer</a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">Log In</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

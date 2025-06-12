@@ -9,8 +9,8 @@
         <h1 class="display-4 fw-bold mb-4">{{ title }}</h1>
         <p class="lead mb-4">{{ message }}</p>
         <div class="mt-4">
-            <a href="#" class="btn btn-warning btn-lg me-3">Browse Events</a>
-            <a href="#" class="btn btn-outline-light btn-lg">List Your Event</a>
+            <a href="{% url 'events_list' %}" class="btn btn-warning btn-lg me-3">Browse Events</a>
+            <a href="{% url 'list_event_landing' %}" class="btn btn-outline-light btn-lg">List Your Event</a>
         </div>
     </div>
 </section>
@@ -37,7 +37,9 @@
                 </div>
                 
                 <div class="alert alert-info" role="alert">
-                    <strong>Development Status:</strong> Milestone 1 Complete - Basic Django setup with Docker! 🎉
+                    <strong>Development Status:</strong> Milestone 2 Complete - User Authentication System! 🎉
+                    <br>
+                    <strong>Next:</strong> Milestone 3 - Event Models and Display
                 </div>
             </div>
         </div>
