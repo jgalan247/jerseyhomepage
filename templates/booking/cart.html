@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shopping Cart - Jersey Events{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Shopping Cart</h1>
+    
+    {% if cart_items %}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Cart Items -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    {% for item in cart_items %}
+                        <div class="p-6 border-b last:border-b-0" data-item-id="{{ item.id }}">
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <!-- Event Image -->
+                                <div class="w-full sm:w-32 h-32 flex-shrink-0">
+                                    {% if item.event.image %}
+                                        <img src="{{ item.event.image.url }}" 
+                                             alt="{{ item.event.title }}"
+                                             class="w-full h-full object-cover rounded-lg">
+                                    {% else %}
+                                        <div class="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <span class="text-gray-400">No image</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Event Details -->
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold mb-1">
+                                        <a href="{% url 'event_management:event_detail' item.event.slug %}" 
+                                           class="hover:text-blue-600">
+                                            {{ item.event.title }}
+                                        </a>
+                                    </h3>
+                                    <p class="text-gray-600 text-sm mb-2">
+                                        {{ item.event.date|date:"l, j F Y" }} at {{ item.event.time|time:"g:i A" }}
+                                    </p>
+                                    <p class="text-gray-600 text-sm mb-3">
+                                        {{ item.event.venue }}
+                                    </p>
+                                    
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-2">
+                                            <label class="text-sm text-gray-600">Quantity:</label>
+                                            <select class="quantity-select border rounded px-2 py-1" 
+                                                    data-item-id="{{ item.id }}"
+                                                    data-max="{{ item.event.available_tickets }}">
+                                                {% for i in "x"|rjust:10 %}
+                                                    {% if forloop.counter <= item.event.available_tickets %}
+                                                        <option value="{{ forloop.counter }}" 
+                                                                {% if forloop.counter == item.quantity %}selected{% endif %}>
+                                                            {{ forloop.counter }}
+                                                        </option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="text-right">
+                                            <p class="text-lg font-semibold item-total">
+                                                £{{ item.total_price|floatformat:2 }}
+                                            </p>
+                                            <p class="text-sm text-gray-600">
+                                                £{{ item.price_at_time|floatformat:2 }} each
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="remove-item mt-3 text-red-600 hover:text-red-700 text-sm"
+                                            data-item-id="{{ item.id }}">
+                                        Remove from cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow p-6 sticky top-4">
+                    <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+                    
+                    <div class="space-y-2 mb-4">
+                        <div class="flex justify-between">
+                            <span>Subtotal ({{ cart.total_items }} item{{ cart.total_items|pluralize }})</span>
+                            <span class="cart-total">£{{ cart.total_price|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Service Fee</span>
+                            <span>£0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t pt-4 mb-6">
+                        <div class="flex justify-between text-lg font-semibold">
+                            <span>Total</span>
+                            <span class="cart-total">£{{ cart.total_price|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    
+                    <a href="{% url 'booking:checkout' %}" 
+                       class="block w-full bg-blue-600 text-white text-center py-3 rounded-lg hover:bg-blue-700 transition">
+                        Proceed to Checkout
+                    </a>
+                    
+                    <a href="{% url 'event_management:event_list' %}" 
+                       class="block text-center mt-4 text-blue-600 hover:text-blue-700">
+                        Continue Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <svg class="w-24 h-24 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+            </svg>
+            <h2 class="text-2xl font-semibold mb-2">Your cart is empty</h2>
+            <p class="text-gray-600 mb-6">Looks like you haven't added any events to your cart yet.</p>
+            <a href="{% url 'event_management:event_list' %}" 
+               class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                Browse Events
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update quantity
+    document.querySelectorAll('.quantity-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const itemId = this.dataset.itemId;
+            const quantity = this.value;
+            
+            fetch("{% url 'booking:update_cart' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: `item_id=${itemId}&quantity=${quantity}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update totals
+                    updateCartDisplay(data);
+                    // Update item total
+                    const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+                    itemElement.querySelector('.item-total').textContent = `£${parseFloat(data.item_total).toFixed(2)}`;
+                } else {
+                    alert(data.error);
+                    // Reset select to previous value
+                    location.reload();
+                }
+            });
+        });
+    });
+    
+    // Remove item
+    document.querySelectorAll('.remove-item').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Remove this item from your cart?')) {
+                const itemId = this.dataset.itemId;
+                
+                fetch(`/booking/cart/remove/${itemId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove item from DOM
+                        const itemElement = document.querySelector(`[data-item-id="${itemId}"]`);
+                        itemElement.remove();
+                        
+                        // Update totals
+                        updateCartDisplay(data);
+                        
+                        // Reload if cart is empty
+                        if (data.cart_items_count === 0) {
+                            location.reload();
+                        }
+                    }
+                });
+            }
+        });
+    });
+    
+    function updateCartDisplay(data) {
+        // Update all cart total displays
+        document.querySelectorAll('.cart-total').forEach(el => {
+            el.textContent = `£${parseFloat(data.cart_total).toFixed(2)}`;
+        });
+        
+        // Update cart badge if exists
+        const cartBadge = document.querySelector('.cart-badge');
+        if (cartBadge) {
+            cartBadge.textContent = data.cart_items_count;
+            cartBadge.style.display = data.cart_items_count > 0 ? 'block' : 'none';
+        }
+    }
+    
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

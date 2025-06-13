@@ -2,6 +2,8 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views  # Import from authentication app, not events!
 
+app_name = 'authentication'
+
 urlpatterns = [
     # Authentication URLs
     path('signup/', views.signup_view, name='signup'),

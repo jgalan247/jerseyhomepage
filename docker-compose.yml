@@ -1,8 +1,8 @@
-# docker-compose.yml
+version: '3.8'
 
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jersey_user"]
+      test: ["CMD-SHELL", "pg_isready -U jersey_user -d jersey_homepage"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,13 +24,18 @@ services:
       - .:/code
     ports:
       - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-dev-key-change-this
+      - DATABASE_URL=postgres://jersey_user:jersey_secure_pass_123@db:5432/jersey_homepage
+      - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:-pk_test_dummy}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_dummy}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_dummy}
     depends_on:
       db:
         condition: service_healthy
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=dev-secret-key-change-in-production
-      - DATABASE_URL=postgres://jersey_user:jersey_secure_pass_123@db:5432/jersey_homepage
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres_data:

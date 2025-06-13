@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),  # All auth URLs under /auth/
+    path('booking/', include('booking.urls')), 
     path('', include('event_management.urls')),     # Event URLs at root
 ]
 

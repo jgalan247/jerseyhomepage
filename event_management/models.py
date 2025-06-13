@@ -2,9 +2,9 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.urls import reverse
-from django.db import models
 
-User = get_user_model()
+# Don't call get_user_model() at module level
+# User = get_user_model()  # Remove this line
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -32,7 +32,7 @@ class Event(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     capacity = models.IntegerField(default=100)
     tickets_sold = models.IntegerField(default=0)
-    organizer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organized_events')
+    organizer = models.ForeignKey('authentication.User', on_delete=models.CASCADE, related_name='organized_events')
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     pet_friendly = models.BooleanField(default=False)
@@ -47,7 +47,7 @@ class Event(models.Model):
         return self.title
     
     def get_absolute_url(self):
-        return reverse('event_detail', kwargs={'slug': self.slug})
+        return reverse('event_management:event_detail', kwargs={'slug': self.slug})
     
     @property
     def is_sold_out(self):
@@ -64,6 +64,29 @@ class Event(models.Model):
     @property
     def is_upcoming(self):
         return self.date > timezone.now()
+    
+    # Add these properties for the booking system
+    @property
+    def available_tickets(self):
+        """Calculate available tickets"""
+        if not self.capacity:
+            return 999  # Unlimited
+        return max(0, self.capacity - self.tickets_sold)
+    
+    @property
+    def has_passed(self):
+        """Check if event has already happened"""
+        return self.date < timezone.now()
+    
+    @property
+    def time(self):
+        """Return just the time portion of the date"""
+        return self.date.time()
+    
+    @property
+    def location(self):
+        """Alias for address - used in templates"""
+        return self.address
 
 class EventImage(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='images')

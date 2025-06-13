@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+app_name = 'event_management'
+
 urlpatterns = [
     # Homepage - Event listing
     path('', views.event_list, name='home'),

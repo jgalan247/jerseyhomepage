@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django.contrib.humanize',  # Add this
     'authentication',  # Your existing auth app
     'event_management',
+    'booking', 
     # Our apps
     # 'events',
     
@@ -65,6 +66,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # 'booking.views.cart_context',  # TEMPORARILY COMMENTED OUT
             ],
         },
     },
@@ -108,7 +110,6 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-
 # Media files
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -120,22 +121,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'authentication.User'
 
 # Login/Logout URLs
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'home'
+LOGIN_URL = 'authentication:login'
+LOGIN_REDIRECT_URL = 'event_management:event_list'
+LOGOUT_REDIRECT_URL = 'event_management:event_list'
 
 # Site configuration
 SITE_NAME = config('SITE_NAME', default='Jersey Homepage')
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
-# Email configuration (for later)
+# Email configuration (for sending tickets)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = f'{SITE_NAME} <admin@coderra.je>'
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'{SITE_NAME} <noreply@jerseyevents.com>')
 
 # Messages
 from django.contrib.messages import constants as messages
@@ -146,3 +147,33 @@ MESSAGE_TAGS = {
     messages.WARNING: 'warning',
     messages.ERROR: 'danger',
 }
+
+# ===== NEW BOOKING SYSTEM SETTINGS =====
+
+# Stripe Configuration
+STRIPE_PUBLIC_KEY = config('STRIPE_PUBLIC_KEY', default='pk_test_...')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='sk_test_...')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='whsec_...')
+
+# Session configuration for cart
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 86400 * 7  # 7 days - cart persists for a week
+SESSION_SAVE_EVERY_REQUEST = True  # Update session on every request to keep cart alive
+
+# Celery Configuration (optional - for async email sending)
+# Uncomment these if you want to use Celery for background tasks
+# CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+# CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = TIME_ZONE
+
+# Security settings for payment processing
+if not DEBUG:
+    # Force HTTPS in production
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True

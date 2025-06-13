@@ -30,7 +30,7 @@ def signup_view(request):
     else:
         form = SignUpForm()
     
-    return render(request, 'events/auth/signup.html', {'form': form})
+    return render(request, 'authentication/signup.html', {'form': form})
 
 
 def login_view(request):
@@ -45,7 +45,7 @@ def login_view(request):
             login(request, user)
             return redirect('home')
     
-    return render(request, 'events/auth/login.html', {'form': form})
+    return render(request, 'authentication/login.html', {'form': form})
 
 
 def logout_view(request):
@@ -56,7 +56,7 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    return render(request, 'events/auth/profile.html', {'user': request.user})
+    return render(request, 'authentication/profile.html', {'user': request.user})
 
 
 def verify_email_view(request, uidb64, token):

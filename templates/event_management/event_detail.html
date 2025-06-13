@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load static %}
 
 {% block title %}{{ event.title }} - Jersey Live{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <!-- Back button -->
-    <a href="{% url 'event_list' %}" class="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6">
+    <a href="/" class="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6">
         <i class="fas fa-arrow-left mr-2"></i> Back to events
     </a>
     
@@ -41,14 +42,14 @@
                         <i class="far fa-calendar mr-3 text-xl"></i>
                         <div>
                             <p class="font-semibold">{{ event.date|date:"l, d F Y" }}</p>
-                            <p class="text-sm">{{ event.date|time:"H:i" }}{% if event.end_date %} - {{ event.end_date|time:"H:i" }}{% endif %}</p>
+                            <p class="text-sm">{{ event.time|time:"H:i" }}{% if event.end_time %} - {{ event.end_time|time:"H:i" }}{% endif %}</p>
                         </div>
                     </div>
                     <div class="flex items-center text-gray-600">
                         <i class="fas fa-map-marker-alt mr-3 text-xl"></i>
                         <div>
                             <p class="font-semibold">{{ event.venue }}</p>
-                            <p class="text-sm">{{ event.address }}</p>
+                            <p class="text-sm">{{ event.location }}</p>
                         </div>
                     </div>
                 </div>
@@ -60,12 +61,12 @@
                             <i class="fas fa-tag mr-2"></i>FREE EVENT
                         </span>
                     {% endif %}
-                    {% if event.pet_friendly %}
+                    {% if event.is_pet_friendly %}
                         <span class="bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm">
                             <i class="fas fa-paw mr-2"></i>Pet Friendly
                         </span>
                     {% endif %}
-                    {% if event.family_friendly %}
+                    {% if event.is_family_event %}
                         <span class="bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm">
                             <i class="fas fa-child mr-2"></i>Family Friendly
                         </span>
@@ -82,45 +83,88 @@
         
         <!-- Sidebar -->
         <div class="lg:col-span-1">
-            <!-- Ticket Box -->
+            <!-- Ticket Booking Box -->
             <div class="bg-white rounded-lg shadow-lg p-6 sticky top-24">
-                <h3 class="text-xl font-semibold mb-4">Tickets</h3>
-                
-                <div class="mb-6">
-                    <p class="text-3xl font-bold">
-                        {% if event.is_free %}
-                            FREE
-                        {% else %}
-                            £{{ event.price|floatformat:2 }}
-                        {% endif %}
-                    </p>
-                    <p class="text-gray-500 text-sm">per person</p>
-                </div>
-                
-                <div class="space-y-3 mb-6">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Capacity:</span>
-                        <span class="font-semibold">{{ event.capacity|intcomma }} people</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-600">Tickets available:</span>
-                        <span class="font-semibold">{{ event.tickets_available|intcomma }}</span>
-                    </div>
-                </div>
+                <h3 class="text-xl font-semibold mb-4">Book Tickets</h3>
                 
                 {% if event.is_sold_out %}
-                    <button class="w-full bg-gray-400 text-white py-3 rounded-lg font-semibold cursor-not-allowed">
-                        Sold Out
-                    </button>
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p class="text-red-600 font-semibold">Sold Out</p>
+                        <p class="text-sm text-red-500 mt-1">This event is currently sold out.</p>
+                    </div>
+                {% elif event.has_passed %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p class="text-gray-600 font-semibold">Event Has Passed</p>
+                        <p class="text-sm text-gray-500 mt-1">This event has already taken place.</p>
+                    </div>
                 {% else %}
-                    <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                        {% if event.is_free %}Get Tickets{% else %}Buy Tickets{% endif %}
-                    </button>
+                    <form id="add-to-cart-form" action="/booking/cart/add/{{ event.slug }}/" method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-2xl font-bold text-blue-600">
+                                    {% if event.price %}
+                                        £{{ event.price|floatformat:2 }}
+                                    {% else %}
+                                        FREE
+                                    {% endif %}
+                                </span>
+                                <span class="text-sm text-gray-600">per ticket</span>
+                            </div>
+                            
+                            {% if event.capacity %}
+                                <p class="text-sm text-gray-600">
+                                    {{ event.available_tickets }} ticket{{ event.available_tickets|pluralize }} remaining
+                                </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-2">
+                                Number of Tickets
+                            </label>
+                            <select name="quantity" id="quantity" 
+                                    class="w-full border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2">
+                                {% for i in "x"|rjust:10 %}
+                                    {% if forloop.counter <= 10 %}
+                                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <button type="submit" 
+                                class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
+                            Add to Cart
+                        </button>
+                    </form>
+                    
+                    <div class="mt-4 space-y-2 text-sm text-gray-600">
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Instant confirmation</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            <span>Secure payment</span>
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            <span>E-tickets sent by email</span>
+                        </div>
+                    </div>
                 {% endif %}
                 
                 <p class="text-xs text-gray-500 mt-4 text-center">
                     <i class="fas fa-clock mr-1"></i>
-                    Event starts in {{ event.date|timeuntil }}
+                    Event starts {{ event.date|naturaltime }}
                 </p>
             </div>
         </div>
@@ -141,7 +185,7 @@
                 <div class="p-4">
                     <h3 class="font-semibold mb-2 line-clamp-2">{{ related.title }}</h3>
                     <p class="text-gray-600 text-sm mb-3">{{ related.date|date:"d M Y" }}</p>
-                    <a href="{{ related.get_absolute_url }}" class="text-blue-600 hover:text-blue-700 text-sm font-semibold">
+                    <a href="/event/{{ related.slug }}/" class="text-blue-600 hover:text-blue-700 text-sm font-semibold">
                         View Details →
                     </a>
                 </div>
@@ -151,4 +195,12 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Mini cart preview (hidden by default) -->
+<div id="mini-cart-preview" class="hidden fixed bottom-4 right-4 z-50 max-w-sm"></div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/add-to-cart.js' %}"></script>
 {% endblock %}
