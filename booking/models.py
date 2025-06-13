@@ -81,6 +81,7 @@ class Order(models.Model):
     order_number = models.CharField(max_length=32, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     email = models.EmailField()  # For guest checkouts
+    stripe_session_id = models.CharField(max_length=255, blank=True)
     
     # Billing information
     first_name = models.CharField(max_length=100)

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}Terms and Conditions - Jersey Events{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold mb-6">Terms and Conditions</h1>
+        <p class="text-gray-600 mb-8">Last updated: {% now "F d, Y" %}</p>
+        
+        <div class="prose prose-lg max-w-none">
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">1. Agreement to Terms</h2>
+                <p class="text-gray-700 mb-4">
+                    By accessing and using Jersey Events, you agree to be bound by these Terms and Conditions. 
+                    If you do not agree with any part of these terms, you must not use our service.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">2. Use of Service</h2>
+                <p class="text-gray-700 mb-4">Jersey Events provides an online platform for discovering and booking event tickets. By using our service, you agree to:</p>
+                <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                    <li>Provide accurate and complete information when creating an account</li>
+                    <li>Maintain the security of your account credentials</li>
+                    <li>Not use the service for any illegal or unauthorized purpose</li>
+                    <li>Not violate any laws in your jurisdiction</li>
+                    <li>Not attempt to disrupt or hack our services</li>
+                </ul>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">3. Ticket Purchases</h2>
+                <h3 class="text-xl font-semibold mb-2 mt-4">3.1 Booking Process</h3>
+                <p class="text-gray-700 mb-4">
+                    When you purchase tickets through our platform, you are entering into a contract with the event organizer. 
+                    Jersey Events acts as an intermediary to facilitate this transaction.
+                </p>
+                
+                <h3 class="text-xl font-semibold mb-2 mt-4">3.2 Payment</h3>
+                <p class="text-gray-700 mb-4">
+                    All payments are processed securely through Stripe. By making a purchase, you agree to pay the full amount 
+                    for the tickets plus any applicable fees.
+                </p>
+                
+                <h3 class="text-xl font-semibold mb-2 mt-4">3.3 Ticket Delivery</h3>
+                <p class="text-gray-700 mb-4">
+                    Tickets will be delivered electronically to the email address provided during purchase. You are responsible 
+                    for ensuring the email address is correct.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">4. Cancellations and Refunds</h2>
+                <p class="text-gray-700 mb-4">
+                    Cancellation and refund policies are determined by individual event organizers. Please review the specific 
+                    event's cancellation policy before purchasing tickets. Jersey Events is not responsible for refunds unless 
+                    required by law.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">5. User Content</h2>
+                <p class="text-gray-700 mb-4">
+                    By submitting content to our platform (reviews, comments, etc.), you grant Jersey Events a non-exclusive, 
+                    worldwide, royalty-free license to use, modify, and display such content.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">6. Limitation of Liability</h2>
+                <p class="text-gray-700 mb-4">
+                    Jersey Events shall not be liable for any indirect, incidental, special, consequential, or punitive damages 
+                    resulting from your use or inability to use the service, including but not limited to:
+                </p>
+                <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                    <li>Event cancellations or changes</li>
+                    <li>Loss of data</li>
+                    <li>Unauthorized access to your account</li>
+                    <li>Errors or inaccuracies in event information</li>
+                </ul>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">7. Intellectual Property</h2>
+                <p class="text-gray-700 mb-4">
+                    All content on Jersey Events, including text, graphics, logos, and software, is the property of Jersey Events 
+                    or its content suppliers and is protected by intellectual property laws.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">8. Changes to Terms</h2>
+                <p class="text-gray-700 mb-4">
+                    We reserve the right to modify these terms at any time. We will notify users of any material changes by 
+                    posting the new terms on this page and updating the "Last updated" date.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">9. Governing Law</h2>
+                <p class="text-gray-700 mb-4">
+                    These terms shall be governed by and construed in accordance with the laws of Jersey, Channel Islands, 
+                    without regard to its conflict of law provisions.
+                </p>
+            </section>
+
+            <section class="mb-8">
+                <h2 class="text-2xl font-semibold mb-4">10. Contact Information</h2>
+                <p class="text-gray-700 mb-4">
+                    If you have any questions about these Terms and Conditions, please contact us at:
+                </p>
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <p class="text-gray-700">
+                        <strong>Email:</strong> legal@jerseyevents.com<br>
+                        <strong>Address:</strong> Jersey Events, St. Helier, Jersey<br>
+                        <strong>Phone:</strong> +44 (0) 1534 123456
+                    </p>
+                </div>
+            </section>
+        </div>
+        
+        <div class="mt-8 pt-8 border-t">
+            <a href="{% url 'authentication:signup' %}" class="text-blue-600 hover:text-blue-700 font-semibold">
+                ← Back to Sign Up
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

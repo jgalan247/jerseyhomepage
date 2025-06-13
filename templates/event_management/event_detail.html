@@ -98,8 +98,9 @@
                         <p class="text-sm text-gray-500 mt-1">This event has already taken place.</p>
                     </div>
                 {% else %}
-                    <form id="add-to-cart-form" action="/booking/cart/add/{{ event.slug }}/" method="POST">
+                    <form id="add-to-cart-form" action="{% url 'booking:add_to_cart' %}" method="POST">
                         {% csrf_token %}
+                        <input type="hidden" name="event_id" value="{{ event.id }}">
                         
                         <div class="mb-4">
                             <div class="flex items-center justify-between mb-2">

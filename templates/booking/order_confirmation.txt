@@ -1,0 +1,42 @@
+Order Confirmed - Jersey Events
+===============================
+
+Thank you for your purchase!
+
+ORDER DETAILS
+-------------
+Order Number: {{ order.order_number }}
+Order Date: {{ order.created_at|date:"F j, Y g:i A" }}
+Customer: {{ order.customer_name }}
+Email: {{ order.customer_email }}
+
+YOUR EVENTS
+-----------
+{% for item in order.items.all %}
+{{ forloop.counter }}. {{ item.event.title }}
+   Date: {{ item.event.date|date:"F j, Y" }} at {{ item.event.date|date:"g:i A" }}
+   Venue: {{ item.event.venue }}, {{ item.event.address }}
+   Tickets: {{ item.quantity }} × £{{ item.price }} = £{{ item.subtotal }}
+   Ticket Type: {{ item.event.ticket_type|capfirst }}
+
+{% endfor %}
+TOTAL AMOUNT PAID: £{{ order.total_amount }}
+
+IMPORTANT INFORMATION
+--------------------
+Your tickets with QR codes have been attached to this email as a PDF.
+Please download and save them, or keep them on your mobile device for entry to the event.
+
+View your order online: {{ domain }}{% url 'booking:order_success' order.order_number %}
+
+NEED HELP?
+----------
+Contact us at support@jersey.live
+
+--
+Jersey Events Platform
+St. Helier, Jersey
+© {% now "Y" %} All rights reserved
+
+You received this email because you made a purchase on Jersey Events.
+This is a transactional email regarding your order.

@@ -1,95 +1,73 @@
-# booking/views.py
-
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.conf import settings
 from django.urls import reverse
+from django.db import transaction, models
+from django.conf import settings
+from django.utils import timezone
 from decimal import Decimal
-import stripe
 import json
+import stripe
 
-# Move imports inside functions to avoid circular import issues
+from event_management.models import Event
 from .models import Cart, CartItem, Order, OrderItem, Ticket
+from .utils import send_order_confirmation_email, generate_tickets_pdf
 
+# Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
 def get_or_create_cart(request):
     """Get or create cart based on session"""
-    if not request.session.session_key:
+    session_key = request.session.session_key
+    if not session_key:
         request.session.create()
+        session_key = request.session.session_key
     
-    cart, created = Cart.objects.get_or_create(
-        session_key=request.session.session_key
-    )
+    cart, created = Cart.objects.get_or_create(session_key=session_key)
     return cart
 
 
 def cart_context(request):
-    """Context processor for cart data"""
-    try:
-        cart = get_or_create_cart(request)
-        return {
-            'cart': cart,
-            'cart_items_count': cart.total_items,
-            'cart_total': cart.total_price,
-        }
-    except Exception:
-        # Return empty cart data if there's any error
-        return {
-            'cart': None,
-            'cart_items_count': 0,
-            'cart_total': 0,
-        }
+    """Context processor for cart"""
+    cart = get_or_create_cart(request)
+    return {
+        'cart': cart,
+        'cart_items_count': cart.total_items
+    }
 
 
 @require_POST
-def add_to_cart(request, event_slug):
-    """AJAX endpoint to add event to cart"""
-    from event_management.models import Event
+def add_to_cart(request):
+    """Add event to cart via AJAX"""
     try:
-        event = get_object_or_404(Event, slug=event_slug)
+        event_id = request.POST.get('event_id')
         quantity = int(request.POST.get('quantity', 1))
         
         if quantity < 1:
             return JsonResponse({'success': False, 'error': 'Invalid quantity'})
         
-        # Check if event has enough capacity
-        if event.capacity and event.tickets_sold + quantity > event.capacity:
-            available = event.capacity - event.tickets_sold
-            return JsonResponse({
-                'success': False, 
-                'error': f'Only {available} tickets available'
-            })
-        
+        event = get_object_or_404(Event, id=event_id, is_active=True)
         cart = get_or_create_cart(request)
         
-        # Check if item already in cart
+        # Check if event already in cart
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
             event=event,
-            defaults={
-                'quantity': quantity,
-                'price_at_time': event.price
-            }
+            defaults={'quantity': 0}
         )
         
-        if not created:
-            # Update quantity if already in cart
-            cart_item.quantity += quantity
-            cart_item.save()
+        # Update quantity
+        cart_item.quantity += quantity
+        cart_item.save()
         
         return JsonResponse({
             'success': True,
             'message': f'{event.title} added to cart',
-            'cart_items_count': cart.total_items,
-            'cart_total': str(cart.total_price),
-            'item_total': str(cart_item.total_price)
+            'cart_count': cart.total_items,
+            'cart_total': str(cart.total_price)
         })
         
     except Exception as e:
@@ -99,43 +77,27 @@ def add_to_cart(request, event_slug):
 def cart_view(request):
     """Display cart page"""
     cart = get_or_create_cart(request)
-    
-    # Check for sold out events
-    for item in cart.items.all():
-        if item.event.is_sold_out:
-            messages.warning(request, f'{item.event.title} is now sold out and has been removed from your cart')
-            item.delete()
-        elif item.event.capacity and item.event.tickets_sold + item.quantity > item.event.capacity:
-            available = item.event.capacity - item.event.tickets_sold
-            item.quantity = available
-            item.save()
-            messages.info(request, f'Quantity for {item.event.title} adjusted to {available} (maximum available)')
-    
     context = {
         'cart': cart,
-        'cart_items': cart.items.select_related('event', 'event__category').all()
+        'cart_items': cart.items.select_related('event').all()
     }
     return render(request, 'booking/cart.html', context)
 
 
 @require_POST
 def update_cart(request):
-    """AJAX endpoint to update cart item quantity"""
+    """Update cart item quantity via AJAX"""
     try:
         item_id = request.POST.get('item_id')
-        quantity = int(request.POST.get('quantity', 1))
+        quantity = int(request.POST.get('quantity'))
         
         cart = get_or_create_cart(request)
         cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
         
-        if quantity < 1:
-            cart_item.delete()
-            message = f'{cart_item.event.title} removed from cart'
-        else:
-            # Check capacity
-            event = cart_item.event
-            if event.capacity and event.tickets_sold + quantity > event.capacity:
-                available = event.capacity - event.tickets_sold
+        if quantity > 0:
+            # Check available tickets
+            available = cart_item.event.available_tickets
+            if quantity > available:
                 return JsonResponse({
                     'success': False,
                     'error': f'Only {available} tickets available'
@@ -143,14 +105,17 @@ def update_cart(request):
             
             cart_item.quantity = quantity
             cart_item.save()
-            message = 'Cart updated'
+        else:
+            cart_item.delete()
+        
+        # Recalculate totals
+        cart.refresh_from_db()
         
         return JsonResponse({
             'success': True,
-            'message': message,
-            'cart_items_count': cart.total_items,
+            'cart_count': cart.total_items,
             'cart_total': str(cart.total_price),
-            'item_total': str(cart_item.total_price) if cart_item.id else '0'
+            'item_total': str(cart_item.subtotal) if quantity > 0 else '0.00'
         })
         
     except Exception as e:
@@ -158,23 +123,26 @@ def update_cart(request):
 
 
 @require_POST
-def remove_from_cart(request, item_id):
-    """Remove item from cart"""
-    cart = get_or_create_cart(request)
-    cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
-    event_title = cart_item.event.title
-    cart_item.delete()
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+def remove_from_cart(request):
+    """Remove item from cart via AJAX"""
+    try:
+        item_id = request.POST.get('item_id')
+        cart = get_or_create_cart(request)
+        cart_item = get_object_or_404(CartItem, id=item_id, cart=cart)
+        cart_item.delete()
+        
+        # Recalculate totals
+        cart.refresh_from_db()
+        
         return JsonResponse({
             'success': True,
-            'message': f'{event_title} removed from cart',
-            'cart_items_count': cart.total_items,
+            'message': 'Item removed from cart',
+            'cart_count': cart.total_items,
             'cart_total': str(cart.total_price)
         })
-    
-    messages.success(request, f'{event_title} removed from cart')
-    return redirect('booking:cart')
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 def checkout_view(request):
@@ -182,40 +150,29 @@ def checkout_view(request):
     cart = get_or_create_cart(request)
     
     if cart.total_items == 0:
-        messages.info(request, 'Your cart is empty')
+        messages.warning(request, 'Your cart is empty')
         return redirect('event_management:event_list')
-    
-    # Final availability check
-    for item in cart.items.all():
-        if item.event.is_sold_out:
-            messages.error(request, f'{item.event.title} is sold out')
-            item.delete()
-    
-    if cart.total_items == 0:
-        return redirect('event_management:event_list')
-    
-    # Pre-fill form if user is authenticated
-    initial_data = {}
-    if request.user.is_authenticated:
-        initial_data = {
-            'email': request.user.email,
-            'first_name': request.user.first_name,
-            'last_name': request.user.last_name,
-        }
     
     context = {
         'cart': cart,
         'cart_items': cart.items.select_related('event').all(),
         'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
-        'initial_data': initial_data,
     }
+    
+    # Pre-fill form if user is authenticated
+    if request.user.is_authenticated:
+        context['user'] = request.user
+    
     return render(request, 'booking/checkout.html', context)
 
 
 @require_POST
 def process_payment(request):
     """Process payment with Stripe"""
+    print("=== PROCESS PAYMENT CALLED ===")
+    
     cart = get_or_create_cart(request)
+    print(f"Cart items: {cart.total_items}")
     
     if cart.total_items == 0:
         return JsonResponse({'success': False, 'error': 'Cart is empty'})
@@ -227,8 +184,11 @@ def process_payment(request):
         last_name = request.POST.get('last_name')
         phone = request.POST.get('phone', '')
         
+        print(f"Form data - Email: {email}, Name: {first_name} {last_name}")
+        
         # Create order
         with transaction.atomic():
+            print("Creating order...")
             order = Order.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 email=email,
@@ -236,187 +196,201 @@ def process_payment(request):
                 last_name=last_name,
                 phone=phone,
                 total_amount=cart.total_price,
-                ip_address=request.META.get('REMOTE_ADDR'),
+                status='pending'
             )
+            print(f"Order created: {order.order_number}")
             
-            # Create order items
-            line_items = []
-            for cart_item in cart.items.all():
-                # Final availability check
-                event = cart_item.event
-                if event.capacity and event.tickets_sold + cart_item.quantity > event.capacity:
-                    raise ValidationError(f'Not enough tickets available for {event.title}')
-                
+            # Create order items from cart
+            print("Creating order items...")
+            for item in cart.items.all():
                 OrderItem.objects.create(
                     order=order,
-                    event=event,
-                    quantity=cart_item.quantity,
-                    price=cart_item.price_at_time
+                    event=item.event,
+                    quantity=item.quantity,
+                    price=item.event.price  # Use event price
                 )
-                
-                # Prepare Stripe line items
+                print(f"  - Added {item.event.title} x{item.quantity}")
+            
+            # Create Stripe Checkout Session
+            print("Creating Stripe session...")
+            line_items = []
+            for item in cart.items.all():
                 line_items.append({
                     'price_data': {
                         'currency': 'gbp',
+                        'unit_amount': int(item.event.price * 100),  # Use event price
                         'product_data': {
-                            'name': event.title,
-                            'description': f'Ticket for {event.title} on {event.date}',
-                            'images': [request.build_absolute_uri(event.image.url)] if event.image else [],
+                            'name': item.event.title,
+                            'description': f"{item.event.venue} - {item.event.date.strftime('%d %b %Y at %H:%M')}",
                         },
-                        'unit_amount': int(cart_item.price_at_time * 100),  # Convert to pence
                     },
-                    'quantity': cart_item.quantity,
+                    'quantity': item.quantity,
                 })
             
-            # Create Stripe checkout session
+            # Create Stripe session
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
                 line_items=line_items,
                 mode='payment',
-                customer_email=email,
+                # customer_email=email,  # Removed to prevent Link from taking over
                 success_url=request.build_absolute_uri(
-                    reverse('booking:order_success', args=[order.order_number])
-                ) + '?session_id={CHECKOUT_SESSION_ID}',
+                    reverse('booking:order_success', kwargs={'order_number': order.order_number})
+                ),
                 cancel_url=request.build_absolute_uri(reverse('booking:checkout')),
                 metadata={
-                    'order_number': order.order_number
+                    'order_id': order.id,
+                    'order_number': order.order_number,
                 }
             )
+            print(f"Stripe session created: {checkout_session.id}")
             
-            # Save Stripe session ID
-            order.stripe_checkout_session = checkout_session.id
+            # Save Stripe session ID to order
+            order.stripe_session_id = checkout_session.id
             order.save()
             
+            # Clear the cart after successful checkout session creation
+            cart.items.all().delete()
+            print("Cart cleared")
+            
+            # Return checkout URL for JavaScript redirect
+            print(f"Redirecting to: {checkout_session.url}")
             return JsonResponse({
                 'success': True,
                 'checkout_url': checkout_session.url
             })
             
-    except ValidationError as e:
-        return JsonResponse({'success': False, 'error': str(e)})
     except stripe.error.StripeError as e:
-        return JsonResponse({'success': False, 'error': 'Payment processing error. Please try again.'})
+        # Handle Stripe errors
+        print(f"Stripe error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
     except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)})
+        # Handle other errors
+        print(f"Process payment error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred processing your payment'
+        })
 
 
 def order_success(request, order_number):
-    """Order success page"""
+    """Display order success page"""
     order = get_object_or_404(Order, order_number=order_number)
     
-    # Verify session if provided
-    session_id = request.GET.get('session_id')
-    if session_id and order.stripe_checkout_session == session_id:
-        # Clear cart
-        cart = get_or_create_cart(request)
-        cart.clear()
-        
-        # Send confirmation email (async task in production)
-        if not order.is_paid:
-            # This would typically be handled by webhook, but for redundancy
-            order.mark_as_paid()
-            send_order_confirmation_email(order)
+    # Security check - only show order to owner or guest checkout
+    if request.user.is_authenticated:
+        if order.user and order.user != request.user:
+            messages.error(request, 'You do not have permission to view this order')
+            return redirect('event_management:event_list')
     
     context = {
         'order': order,
-        'order_items': order.items.select_related('event').all()
     }
     return render(request, 'booking/order_success.html', context)
 
 
-@login_required
-def order_history(request):
-    """Display user's order history"""
-    orders = request.user.orders.select_related().prefetch_related(
-        'items__event', 'items__tickets'
-    ).order_by('-created_at')
+@csrf_exempt
+@require_POST
+def stripe_webhook(request):
+    """Handle Stripe webhooks"""
+    payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    event = None
     
-    context = {
-        'orders': orders
-    }
-    return render(request, 'booking/order_history.html', context)
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        # Invalid payload
+        return HttpResponseBadRequest('Invalid payload')
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        return HttpResponseBadRequest('Invalid signature')
+    
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        
+        # Get order from metadata
+        order_id = session['metadata'].get('order_id')
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id)
+                order.status = 'completed'  # Changed from payment_status
+                order.stripe_payment_intent = session.get('payment_intent')  # Changed from stripe_payment_intent_id
+                order.save()
+                
+                # Create tickets for the order
+                create_tickets_for_order(order)
+                
+                # Send confirmation email
+                send_order_confirmation_email(order)
+                
+                # Update event tickets sold
+                for item in order.items.all():
+                    Event.objects.filter(pk=item.event.pk).update(
+                        tickets_sold=models.F('tickets_sold') + item.quantity
+                    )
+                    
+            except Order.DoesNotExist:
+                pass
+    
+    return HttpResponse(status=200)
 
 
-def order_detail(request, order_number):
-    """Display order details"""
-    order = get_object_or_404(Order, order_number=order_number)
-    
-    # Check permission
-    if not request.user.is_authenticated and order.email != request.session.get('guest_email'):
-        if request.method == 'POST':
-            email = request.POST.get('email')
-            if email == order.email:
-                request.session['guest_email'] = email
-            else:
-                messages.error(request, 'Invalid email for this order')
-                return redirect('booking:order_lookup')
-        else:
-            return render(request, 'booking/order_verify_email.html', {'order_number': order_number})
-    
-    elif request.user.is_authenticated and order.user != request.user:
-        messages.error(request, 'You do not have permission to view this order')
-        return redirect('booking:order_history')
-    
-    context = {
-        'order': order,
-        'order_items': order.items.select_related('event').prefetch_related('tickets').all()
-    }
-    return render(request, 'booking/order_detail.html', context)
+def create_tickets_for_order(order):
+    """Create tickets for a completed order"""
+    for item in order.items.all():
+        for i in range(item.quantity):
+            Ticket.objects.create(
+                order=order,
+                event=item.event,
+                ticket_type='standard',
+                price=item.price
+            )
 
 
 def download_tickets(request, order_number):
     """Download tickets as PDF"""
     order = get_object_or_404(Order, order_number=order_number)
     
-    # Check permission
+    # Security check
     if request.user.is_authenticated:
-        if order.user != request.user:
+        if order.user and order.user != request.user:
             messages.error(request, 'You do not have permission to download these tickets')
-            return redirect('booking:order_history')
-    else:
-        if order.email != request.session.get('guest_email'):
-            messages.error(request, 'Please verify your email first')
-            return redirect('booking:order_detail', order_number=order_number)
-    
-    if not order.is_paid:
-        messages.error(request, 'Order is not paid')
-        return redirect('booking:order_detail', order_number=order_number)
+            return redirect('event_management:event_list')
     
     # Generate PDF
-    pdf_response = generate_ticket_pdf(order)
-    return pdf_response
-
-
-@require_POST
-def stripe_webhook(request):
-    """Handle Stripe webhooks"""
-    payload = request.body
-    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
-    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
+    pdf_buffer = generate_tickets_pdf(order)
     
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="tickets_{order_number}.pdf"'
+    
+    return response
+
+
+def test_stripe(request):
+    """Test Stripe with minimal setup"""
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, endpoint_secret
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'gbp',
+                    'product_data': {'name': 'Test Product'},
+                    'unit_amount': 2000,  # £20.00
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url='http://localhost:8000/',
+            cancel_url='http://localhost:8000/',
         )
-    except ValueError:
-        return JsonResponse({'error': 'Invalid payload'}, status=400)
-    except stripe.error.SignatureVerificationError:
-        return JsonResponse({'error': 'Invalid signature'}, status=400)
-    
-    # Handle the event
-    if event['type'] == 'checkout.session.completed':
-        session = event['data']['object']
-        order_number = session['metadata']['order_number']
-        
-        try:
-            order = Order.objects.get(order_number=order_number)
-            order.stripe_payment_intent = session.get('payment_intent')
-            order.mark_as_paid()
-            
-            # Send confirmation email
-            send_order_confirmation_email(order)
-            
-        except Order.DoesNotExist:
-            return JsonResponse({'error': 'Order not found'}, status=404)
-    
-    return JsonResponse({'status': 'success'})
+        return redirect(checkout_session.url)
+    except Exception as e:
+        return HttpResponse(f"Error: {str(e)}")

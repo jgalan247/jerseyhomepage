@@ -122,3 +122,12 @@ def list_event_landing(request):
     return render(request, 'events/list_event_landing.html', {
         'title': 'List Your Event on Jersey Homepage'
     })
+
+def privacy_policy(request):
+    """Display privacy policy page"""
+    return render(request, 'authentication/privacy_policy.html')
+
+
+def terms_conditions(request):
+    """Display terms and conditions page"""
+    return render(request, 'authentication/terms_conditions.html')

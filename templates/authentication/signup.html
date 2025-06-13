@@ -35,9 +35,13 @@
                         <div class="flex items-start">
                             {{ field }}
                             <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-600">
-                                {% if field.name == 'terms' %}
-                                    I accept the <a href="{% url 'authentication:terms_conditions' %}" class="text-blue-600 hover:text-blue-700 underline">Terms and Conditions</a> 
-                                    and <a href="{% url 'authentication:privacy_policy' %}" class="text-blue-600 hover:text-blue-700 underline">Privacy Policy</a>
+                                {% if field.name == 'terms_accepted' %}
+                                    I accept the <a href="{% url 'authentication:terms_conditions' %}" 
+                                                   class="text-blue-600 hover:text-blue-700 underline" 
+                                                   target="_blank">Terms and Conditions</a> 
+                                    and <a href="{% url 'authentication:privacy_policy' %}" 
+                                           class="text-blue-600 hover:text-blue-700 underline" 
+                                           target="_blank">Privacy Policy</a>
                                 {% else %}
                                     {{ field.label }}
                                 {% endif %}

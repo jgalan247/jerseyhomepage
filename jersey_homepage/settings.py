@@ -55,6 +55,7 @@ if DEBUG:
 
 ROOT_URLCONF = 'jersey_homepage.urls'
 
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -66,7 +67,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # 'booking.views.cart_context',  # TEMPORARILY COMMENTED OUT
+                'booking.views.cart_context',  # Cart context processor - NOW ACTIVE
             ],
         },
     },
@@ -77,7 +78,8 @@ WSGI_APPLICATION = 'jersey_homepage.wsgi.application'
 # Database
 DATABASES = {
     'default': dj_database_url.parse(
-        config('DATABASE_URL', default='postgres://jersey_user:jersey_secure_pass_123@localhost:5432/jersey_homepage')
+        config('DATABASE_URL', default='postgres://jersey_user:jersey_secure_pass_123@db:5432/jersey_roothp')
+        #config('DATABASE_URL', default='postgres://jersey_user:jersey_secure_pass_123@localhost:5432/jersey_homepage')
     )
 }
 
