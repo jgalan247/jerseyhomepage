@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Search Events - Jersey Events{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Search Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <form method="get" action="{% url 'event_management:event_search' %}" class="space-y-4">
+            <!-- Search Input -->
+            <div>
+                <input type="text" name="q" value="{{ query }}" 
+                       placeholder="Search events, venues, or locations..." 
+                       class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            
+            <!-- Filters Row -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Category Filter -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select name="category" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if current_filters.category == category.id|stringformat:"s" %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Date From -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" name="date_from" value="{{ current_filters.date_from }}"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <!-- Date To -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" name="date_to" value="{{ current_filters.date_to }}"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <!-- Sort -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                    <select name="sort" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="-date" {% if current_filters.sort == '-date' %}selected{% endif %}>Date (Newest)</option>
+                        <option value="date" {% if current_filters.sort == 'date' %}selected{% endif %}>Date (Oldest)</option>
+                        <option value="price" {% if current_filters.sort == 'price' %}selected{% endif %}>Price (Low to High)</option>
+                        <option value="-price" {% if current_filters.sort == '-price' %}selected{% endif %}>Price (High to Low)</option>
+                        <option value="title" {% if current_filters.sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Price Range -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Min Price (£)</label>
+                    <input type="number" name="price_min" value="{{ current_filters.price_min }}"
+                           min="0" step="0.01"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Max Price (£)</label>
+                    <input type="number" name="price_max" value="{{ current_filters.price_max }}"
+                           min="0" step="0.01"
+                           class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex gap-4">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    Search
+                </button>
+                <a href="{% url 'event_management:event_search' %}" 
+                   class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
+                    Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Results Header -->
+    <div class="mb-6">
+        {% if query %}
+            <h2 class="text-2xl font-bold">
+                Search results for "{{ query }}"
+            </h2>
+        {% else %}
+            <h2 class="text-2xl font-bold">All Events</h2>
+        {% endif %}
+        <p class="text-gray-600 mt-1">
+            Found {{ page_obj.paginator.count }} event{{ page_obj.paginator.count|pluralize }}
+        </p>
+    </div>
+    
+    <!-- Search Results -->
+    {% if events %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for event in events %}
+                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    {% if event.images.first %}
+                        <img src="{{ event.images.first.image.url }}" 
+                             alt="{{ event.title }}" 
+                             class="w-full h-48 object-cover">
+                    {% else %}
+                        <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                            <span class="text-gray-400">No image available</span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold mb-2">
+                            <a href="{% url 'event_management:event_detail' event.slug %}" 
+                               class="text-gray-900 hover:text-blue-600">
+                                {{ event.title }}
+                            </a>
+                        </h3>
+                        
+                        <p class="text-gray-600 text-sm mb-4">{{ event.description|truncatewords:20 }}</p>
+                        
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <p class="flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                {{ event.date|date:"D, d M Y" }} at {{ event.date|time:"g:i A" }}
+                            </p>
+                            <p class="flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                {{ event.location }}
+                            </p>
+                        </div>
+                        
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-2xl font-bold text-blue-600">£{{ event.price|floatformat:2 }}</span>
+                            <a href="{% url 'event_management:event_detail' event.slug %}" 
+                               class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="mt-8 flex justify-center">
+                <nav class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                           class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                            Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="px-4 py-2 bg-blue-600 text-white rounded">{{ num }}</span>
+                        {% else %}
+                            <a href="?{% if query %}q={{ query }}&{% endif %}page={{ num }}" 
+                               class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                           class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+                            Next
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-white rounded-lg shadow-md p-8 text-center">
+            <p class="text-xl text-gray-600 mb-4">No events found matching your search criteria.</p>
+            <a href="{% url 'event_management:event_list' %}" 
+               class="inline-block px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                Browse All Events
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

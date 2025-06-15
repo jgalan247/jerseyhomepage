@@ -9,60 +9,218 @@
     <div class="container mx-auto px-4">
         <h1 class="text-4xl md:text-5xl font-bold mb-4">Upcoming Events in Jersey</h1>
         <p class="text-xl opacity-90">Discover amazing events happening around Jersey Island</p>
-        
-        <!-- Search Bar -->
-        <div class="mt-8 max-w-2xl">
-            <form method="get" class="relative">
-                <input type="text" name="search" value="{{ search_query }}" 
-                       placeholder="Search events..."
-                       class="w-full px-6 py-4 rounded-lg text-gray-900 text-lg">
-                <button type="submit" class="absolute right-2 top-2 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
-                    <i class="fas fa-search"></i> Search
-                </button>
-            </form>
-        </div>
     </div>
 </div>
 
-<!-- Filters Section -->
-<div class="bg-white shadow-sm sticky top-0 z-10">
-    <div class="container mx-auto px-4 py-4">
-        <!-- Category Pills -->
-        <div class="flex flex-wrap gap-3 mb-4">
-            <a href="?" class="category-pill px-5 py-2 rounded-full {% if not selected_category %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %} transition">
-                All Events
-            </a>
-            {% for category in categories %}
-            <a href="?category={{ category.slug }}" 
-               class="category-pill px-5 py-2 rounded-full {% if selected_category == category.slug %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %} transition"
-               style="{% if selected_category == category.slug %}background-color: {{ category.color }};{% endif %}">
-                <i class="fas fa-{{ category.icon }} mr-2"></i>{{ category.name }}
-            </a>
+<!-- Main Search and Filters Section -->
+<div class="container mx-auto px-4 py-8">
+    <!-- Search Section with Accumulative Filters -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <form method="get" action="{% url 'event_management:event_list' %}" id="event-filter-form" class="space-y-4">
+            <!-- Basic Search -->
+            <div class="flex gap-4">
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="Search events, venues, or locations..." 
+                       class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                
+                <!-- Category Quick Filter -->
+                <select name="category" class="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-search mr-2"></i>Search
+                </button>
+                
+                <!-- Toggle Advanced Search -->
+                <button type="button" 
+                        onclick="toggleAdvancedSearch()"
+                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                    </svg>
+                    <span id="advanced-toggle-text">{% if show_advanced %}Hide{% else %}Show{% endif %} Filters</span>
+                </button>
+            </div>
+            
+            <!-- Quick Filters - Now with checkboxes for multiple selection -->
+            <div class="border-t pt-4">
+                <label class="block text-sm font-medium text-gray-700 mb-3">Quick Filters:</label>
+                <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="filter" value="free" 
+                               {% if 'free' in selected_filters %}checked{% endif %}
+                               class="mr-2 rounded text-blue-600 focus:ring-blue-500"
+                               onchange="document.getElementById('event-filter-form').submit()">
+                        <span class="px-3 py-1 rounded-full text-sm {% if 'free' in selected_filters %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <i class="fas fa-tag mr-1"></i>Free Events
+                        </span>
+                    </label>
+                    
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="filter" value="weekend" 
+                               {% if 'weekend' in selected_filters %}checked{% endif %}
+                               class="mr-2 rounded text-blue-600 focus:ring-blue-500"
+                               onchange="document.getElementById('event-filter-form').submit()">
+                        <span class="px-3 py-1 rounded-full text-sm {% if 'weekend' in selected_filters %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <i class="far fa-calendar mr-1"></i>Weekend
+                        </span>
+                    </label>
+                    
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="filter" value="family-friendly" 
+                               {% if 'family-friendly' in selected_filters %}checked{% endif %}
+                               class="mr-2 rounded text-blue-600 focus:ring-blue-500"
+                               onchange="document.getElementById('event-filter-form').submit()">
+                        <span class="px-3 py-1 rounded-full text-sm {% if 'family-friendly' in selected_filters %}bg-orange-100 text-orange-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <i class="fas fa-users mr-1"></i>Family Friendly
+                        </span>
+                    </label>
+                    
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="filter" value="pet-friendly" 
+                               {% if 'pet-friendly' in selected_filters %}checked{% endif %}
+                               class="mr-2 rounded text-blue-600 focus:ring-blue-500"
+                               onchange="document.getElementById('event-filter-form').submit()">
+                        <span class="px-3 py-1 rounded-full text-sm {% if 'pet-friendly' in selected_filters %}bg-purple-100 text-purple-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <i class="fas fa-paw mr-1"></i>Pet Friendly
+                        </span>
+                    </label>
+                    
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" name="filter" value="offers" 
+                               {% if 'offers' in selected_filters %}checked{% endif %}
+                               class="mr-2 rounded text-blue-600 focus:ring-blue-500"
+                               onchange="document.getElementById('event-filter-form').submit()">
+                        <span class="px-3 py-1 rounded-full text-sm {% if 'offers' in selected_filters %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            <i class="fas fa-percent mr-1"></i>Special Offers
+                        </span>
+                    </label>
+                    
+                    {% if selected_filters %}
+                    <a href="{% url 'event_management:event_list' %}?search={{ search_query }}&category={{ selected_category }}" 
+                       class="ml-4 text-sm text-gray-600 hover:text-gray-800 underline">
+                        Clear quick filters
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Advanced Filters (Hidden by default) -->
+            <div id="advanced-filters" class="{% if not show_advanced %}hidden{% endif %} space-y-4 pt-4 border-t">
+                <input type="hidden" name="show_advanced" id="show_advanced" value="{{ show_advanced|yesno:'true,false' }}">
+                
+                <!-- Date and Price Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Date From -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                        <input type="date" name="date_from" value="{{ current_filters.date_from }}"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Date To -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                        <input type="date" name="date_to" value="{{ current_filters.date_to }}"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Min Price -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Min Price (£)</label>
+                        <input type="number" name="price_min" value="{{ current_filters.price_min }}"
+                               min="0" step="0.01"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Max Price -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Max Price (£)</label>
+                        <input type="number" name="price_max" value="{{ current_filters.price_max }}"
+                               min="0" step="0.01"
+                               class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <!-- Sort Options -->
+                <div class="flex items-center gap-4">
+                    <label class="text-sm font-medium text-gray-700">Sort by:</label>
+                    <select name="sort" class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="-date" {% if current_filters.sort == '-date' %}selected{% endif %}>Date (Newest)</option>
+                        <option value="date" {% if current_filters.sort == 'date' %}selected{% endif %}>Date (Oldest)</option>
+                        <option value="price" {% if current_filters.sort == 'price' %}selected{% endif %}>Price (Low to High)</option>
+                        <option value="-price" {% if current_filters.sort == '-price' %}selected{% endif %}>Price (High to Low)</option>
+                        <option value="title" {% if current_filters.sort == 'title' %}selected{% endif %}>Title (A-Z)</option>
+                    </select>
+                </div>
+                
+                <!-- Clear Filters -->
+                <div class="flex justify-end">
+                    <a href="{% url 'event_management:event_list' %}" 
+                       class="text-sm text-gray-600 hover:text-gray-800">
+                        Clear all filters
+                    </a>
+                </div>
+            </div>
+        </form>
+        <script>
+function toggleAdvancedSearch() {
+    const advancedFilters = document.getElementById('advanced-filters');
+    const toggleText = document.getElementById('advanced-toggle-text');
+    const showAdvancedInput = document.getElementById('show_advanced');
+    
+    if (advancedFilters.classList.contains('hidden')) {
+        advancedFilters.classList.remove('hidden');
+        toggleText.textContent = 'Hide Filters';
+        showAdvancedInput.value = 'true';
+    } else {
+        advancedFilters.classList.add('hidden');
+        toggleText.textContent = 'Show Filters';
+        showAdvancedInput.value = 'false';
+    }
+}
+</script>
+    </div>
+
+    <!-- Results Summary -->
+    <div class="mb-6 flex justify-between items-center">
+        <p class="text-gray-600">Found <span class="font-semibold">{{ total_events }}</span> event{{ total_events|pluralize }}</p>
+        
+        <!-- Active Filters Display -->
+        {% if selected_filters or search_query or selected_category %}
+        <div class="flex flex-wrap gap-2">
+            {% if search_query %}
+            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                Search: "{{ search_query }}"
+            </span>
+            {% endif %}
+            
+            {% if selected_category %}
+            {% for cat in categories %}
+                {% if cat.slug == selected_category %}
+                <span class="px-3 py-1 rounded-full text-sm text-white" style="background-color: {{ cat.color }}">
+                    {{ cat.name }}
+                </span>
+                {% endif %}
+            {% endfor %}
+            {% endif %}
+            
+            {% for filter in selected_filters %}
+            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                {{ filter|title|cut:"-"|capfirst }}
+            </span>
             {% endfor %}
         </div>
-        
-        <!-- Quick Filters -->
-        <div class="flex flex-wrap gap-3 text-sm">
-            <span class="text-gray-600">Quick Filters:</span>
-            <a href="?filter=free" class="px-3 py-1 rounded {% if selected_filter == 'free' %}bg-green-100 text-green-700{% else %}text-gray-600 hover:text-gray-900{% endif %} transition">
-                <i class="fas fa-tag mr-1"></i>FREE
-            </a>
-            <a href="?filter=weekend" class="px-3 py-1 rounded {% if selected_filter == 'weekend' %}bg-blue-100 text-blue-700{% else %}text-gray-600 hover:text-gray-900{% endif %} transition">
-                <i class="far fa-calendar mr-1"></i>This Weekend
-            </a>
-            <a href="?filter=pet-friendly" class="px-3 py-1 rounded {% if selected_filter == 'pet-friendly' %}bg-purple-100 text-purple-700{% else %}text-gray-600 hover:text-gray-900{% endif %} transition">
-                <i class="fas fa-paw mr-1"></i>Pet Friendly
-            </a>
-            <a href="?filter=family-friendly" class="px-3 py-1 rounded {% if selected_filter == 'family-friendly' %}bg-orange-100 text-orange-700{% else %}text-gray-600 hover:text-gray-900{% endif %} transition">
-                <i class="fas fa-users mr-1"></i>Family Friendly
-            </a>
-            <span class="ml-auto text-gray-500">Found {{ total_events }} event{{ total_events|pluralize }}</span>
-        </div>
+        {% endif %}
     </div>
-</div>
 
-<!-- Events Grid -->
-<div class="container mx-auto px-4 py-8">
+    <!-- Events Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for event in page_obj %}
         <div class="event-card bg-white rounded-lg shadow-lg overflow-hidden">
@@ -92,6 +250,13 @@
                      style="background-color: {{ event.category.color }}">
                     {{ event.category.name }}
                 </div>
+                
+                <!-- Offers Badge -->
+                {% if event.has_offers %}
+                <div class="absolute top-4 left-4 mt-8 px-3 py-1 bg-red-500 rounded-full text-white text-sm">
+                    <i class="fas fa-percent mr-1"></i>Offer
+                </div>
+                {% endif %}
             </div>
             
             <div class="p-5">
@@ -126,6 +291,11 @@
                                 <i class="fas fa-child"></i>
                             </span>
                         {% endif %}
+                        {% if event.has_offers %}
+                            <span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
+                                <i class="fas fa-percent"></i>
+                            </span>
+                        {% endif %}
                     </div>
                     
                     <a href="{{ event.get_absolute_url }}" 
@@ -149,7 +319,7 @@
     <div class="flex justify-center mt-8">
         <nav class="flex items-center space-x-2">
             {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" 
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
                    class="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 transition">
                     <i class="fas fa-chevron-left"></i>
                 </a>
@@ -159,7 +329,7 @@
                 {% if page_obj.number == num %}
                     <span class="px-4 py-2 rounded bg-blue-600 text-white">{{ num }}</span>
                 {% else %}
-                    <a href="?page={{ num }}" 
+                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
                        class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 transition">
                         {{ num }}
                     </a>
@@ -167,7 +337,7 @@
             {% endfor %}
             
             {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" 
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
                    class="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 transition">
                     <i class="fas fa-chevron-right"></i>
                 </a>
@@ -176,4 +346,24 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAdvancedSearch() {
+    const advancedFilters = document.getElementById('advanced-filters');
+    const toggleText = document.getElementById('advanced-toggle-text');
+    const showAdvancedInput = document.getElementById('show_advanced');
+    
+    if (advancedFilters.classList.contains('hidden')) {
+        advancedFilters.classList.remove('hidden');
+        toggleText.textContent = 'Hide Filters';
+        showAdvancedInput.value = 'true';
+    } else {
+        advancedFilters.classList.add('hidden');
+        toggleText.textContent = 'Show Filters';
+        showAdvancedInput.value = 'false';
+    }
+}
+</script>
 {% endblock %}

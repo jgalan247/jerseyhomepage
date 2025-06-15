@@ -36,5 +36,14 @@ services:
     stdin_open: true
     tty: true
 
+  mailhog:
+    image: mailhog/mailhog
+    platform: linux/amd64
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - default
+
 volumes:
   postgres_data:

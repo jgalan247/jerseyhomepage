@@ -1,17 +1,14 @@
 from django.urls import path
 from . import views
+from .views import EventSearchView  # Add this import
 
 app_name = 'event_management'
 
 urlpatterns = [
-    # Homepage - Event listing
-    path('', views.event_list, name='home'),
     path('', views.event_list, name='event_list'),
-    
-    # Event detail
+    path('search/', EventSearchView.as_view(), name='event_search'),
     path('event/<slug:slug>/', views.event_detail, name='event_detail'),
-    
-    # Event management (for later milestones)
-    path('events/create/', views.create_event, name='create_event'),
-    path('events/list/', views.list_event_landing, name='list_event_landing'),
+    path('create/', views.create_event, name='create_event'),
+    path('list/', views.list_event_landing, name='list_event_landing'),
+    path('event/<slug:slug>/download-ics/', views.download_ics, name='download_ics'),
 ]

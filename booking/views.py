@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
@@ -10,10 +10,13 @@ from django.utils import timezone
 from decimal import Decimal
 import json
 import stripe
-
+import qrcode
+from io import BytesIO
+import base64
 from event_management.models import Event
 from .models import Cart, CartItem, Order, OrderItem, Ticket
 from .utils import send_order_confirmation_email, generate_tickets_pdf
+from .utils import generate_single_ticket_pdf 
 
 # Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -281,80 +284,128 @@ def order_success(request, order_number):
     """Display order success page"""
     order = get_object_or_404(Order, order_number=order_number)
     
-    # Security check - only show order to owner or guest checkout
-    if request.user.is_authenticated:
-        if order.user and order.user != request.user:
-            messages.error(request, 'You do not have permission to view this order')
-            return redirect('event_management:event_list')
+    # AUTO-SEND EMAIL FOR TESTING
+    if order.status == 'pending':
+        try:
+            order.status = 'confirmed'
+            order.paid_at = timezone.now()
+            order.save()
+            
+            for item in order.items.all():
+                item.generate_tickets()
+            
+            from .utils import send_order_confirmation_email
+            send_order_confirmation_email(order)
+        except Exception as e:
+            print(f"Email error: {e}")
     
-    context = {
-        'order': order,
-    }
+    context = {'order': order}
     return render(request, 'booking/order_success.html', context)
-
 
 @csrf_exempt
 @require_POST
 def stripe_webhook(request):
     """Handle Stripe webhooks"""
+    print("=== WEBHOOK CALLED ===")
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     event = None
+    
+    # Debug info
+    print(f"Payload length: {len(payload)}")
+    print(f"Signature header present: {sig_header is not None}")
+    print(f"Webhook secret configured: {bool(settings.STRIPE_WEBHOOK_SECRET)}")
+    print(f"Webhook secret starts with: {settings.STRIPE_WEBHOOK_SECRET[:10] if settings.STRIPE_WEBHOOK_SECRET else 'NOT SET'}")
+    
+    if not sig_header:
+        print("ERROR: No signature header!")
+        return HttpResponseBadRequest('No signature header')
     
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
-    except ValueError:
-        # Invalid payload
+        print(f"SUCCESS: Event type: {event['type']}")
+    except ValueError as e:
+        print(f"ERROR - ValueError: {e}")
         return HttpResponseBadRequest('Invalid payload')
-    except stripe.error.SignatureVerificationError:
-        # Invalid signature
+    except stripe.error.SignatureVerificationError as e:
+        print(f"ERROR - Signature verification failed: {e}")
         return HttpResponseBadRequest('Invalid signature')
+    except Exception as e:
+        print(f"ERROR - Unexpected: {type(e).__name__}: {e}")
+        return HttpResponseBadRequest('Webhook error')
     
     # Handle the event
     if event['type'] == 'checkout.session.completed':
+        print("Processing checkout.session.completed")
         session = event['data']['object']
         
         # Get order from metadata
         order_id = session['metadata'].get('order_id')
+        print(f"Order ID from metadata: {order_id}")
+        
         if order_id:
             try:
                 order = Order.objects.get(id=order_id)
-                order.status = 'completed'  # Changed from payment_status
-                order.stripe_payment_intent = session.get('payment_intent')  # Changed from stripe_payment_intent_id
+                print(f"Found order: {order.order_number}")
+                
+                # Update order status
+                order.status = 'confirmed'  # Fixed: was 'completed'
+                order.stripe_payment_intent = session.get('payment_intent')
+                order.paid_at = timezone.now()  # Add this
                 order.save()
                 
                 # Create tickets for the order
                 create_tickets_for_order(order)
+                print("Tickets created")
                 
                 # Send confirmation email
                 send_order_confirmation_email(order)
+                print("Confirmation email sent!")
                 
                 # Update event tickets sold
                 for item in order.items.all():
                     Event.objects.filter(pk=item.event.pk).update(
                         tickets_sold=models.F('tickets_sold') + item.quantity
                     )
+                print("Event tickets updated")
                     
             except Order.DoesNotExist:
-                pass
+                print(f"ERROR: Order with id {order_id} not found")
+        else:
+            print("ERROR: No order_id in session metadata")
     
     return HttpResponse(status=200)
-
 
 def create_tickets_for_order(order):
     """Create tickets for a completed order"""
     for item in order.items.all():
-        for i in range(item.quantity):
-            Ticket.objects.create(
-                order=order,
-                event=item.event,
-                ticket_type='standard',
-                price=item.price
-            )
-
-
+        item.generate_tickets()
+        
+def download_single_ticket(request, ticket_id):
+    """Download a single ticket PDF"""
+    from .models import Ticket
+    
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    
+    # Security check - ensure user owns this ticket or is staff
+    if request.user.is_authenticated:
+        if ticket.order.email != request.user.email and not request.user.is_staff:
+            return HttpResponseForbidden("You don't have permission to download this ticket.")
+    else:
+        # For anonymous users, you might want to add session-based checking
+        # or require authentication
+        pass
+    
+    # Generate PDF
+    pdf_buffer = generate_single_ticket_pdf(ticket)
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="ticket-{ticket.ticket_number}.pdf"'
+    response.write(pdf_buffer.getvalue())
+    
+    return response
 def download_tickets(request, order_number):
     """Download tickets as PDF"""
     order = get_object_or_404(Order, order_number=order_number)
@@ -372,6 +423,35 @@ def download_tickets(request, order_number):
     response['Content-Disposition'] = f'attachment; filename="tickets_{order_number}.pdf"'
     
     return response
+
+def generate_order_qr_code(order):
+    """Generate QR code for order"""
+    # Create QR code data - could be order details or a URL
+    qr_data = f"ORDER:{order.order_number}|DATE:{order.created_at.strftime('%Y%m%d')}|AMOUNT:{order.total_amount}"
+    
+    # Alternatively, use a URL to view the order
+    # qr_data = f"http://localhost:8000/booking/order/success/{order.order_number}/"
+    
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    
+    # Create image
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64 for embedding in HTML
+    buffer = BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    img_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return img_base64
 
 
 def test_stripe(request):

@@ -132,14 +132,19 @@ SITE_NAME = config('SITE_NAME', default='Jersey Homepage')
 SITE_URL = config('SITE_URL', default='http://localhost:8000')
 
 # Email configuration (for sending tickets)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
-EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'{SITE_NAME} <noreply@jerseyevents.com>')
-
+#EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+#EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+#EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+#EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+#EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+#DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=f'{SITE_NAME} <noreply@jerseyevents.com>')
+# For Django (settings.py)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'localhost' # if not using Docker networking
+EMAIL_PORT = 1025
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
 # Messages
 from django.contrib.messages import constants as messages
 MESSAGE_TAGS = {
@@ -179,3 +184,14 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Use SMTP even in DEBUG
+    EMAIL_HOST = 'mailhog' # if Django is in Docker
+    EMAIL_PORT = 1025
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+else:
+    # Production email settings
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')

@@ -12,6 +12,7 @@ from django.core.files import File
 from PIL import Image
 import secrets
 import string
+import base64
 
 User = get_user_model()
 
@@ -82,7 +83,7 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     email = models.EmailField()  # For guest checkouts
     stripe_session_id = models.CharField(max_length=255, blank=True)
-    
+    qr_code = models.TextField(blank=True, null=True)
     # Billing information
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -137,6 +138,48 @@ class Order(models.Model):
         for item in self.items.all():
             item.generate_tickets()
 
+    @property
+    def customer_email(self):
+        """Alias for email - used in templates and utils"""
+        return self.email
+    
+    @property
+    def customer_name(self):
+        """Full name of customer"""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def generate_qr_code(self):
+        """Generate QR code for the entire order"""
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=5,
+        )
+        
+        # Data to encode
+        qr_data = {
+            'order_number': self.order_number,
+            'total_amount': str(self.total_amount),
+            'created_at': self.created_at.isoformat(),
+            'email': self.email,
+        }
+        
+        qr.add_data(str(qr_data))
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert to base64
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        self.qr_code = img_str
+        self.save()
+        
+        return self.qr_code
+
 
 class OrderItem(models.Model):
     """Individual event booking in an order"""
@@ -154,6 +197,10 @@ class OrderItem(models.Model):
     
     @property
     def total_price(self):
+        return self.quantity * self.price
+    
+    @property
+    def subtotal(self):
         return self.quantity * self.price
     
     def generate_tickets(self):
@@ -177,7 +224,7 @@ class Ticket(models.Model):
     """Individual ticket with QR code"""
     order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='tickets')
     ticket_number = models.CharField(max_length=64, unique=True)
-    qr_code = models.ImageField(upload_to='tickets/qr_codes/', blank=True)
+    qr_code = models.TextField(blank=True, null=True) 
     is_used = models.BooleanField(default=False)
     used_at = models.DateTimeField(null=True, blank=True)
     
@@ -197,7 +244,7 @@ class Ticket(models.Model):
         return self.order_item.order
     
     def generate_qr_code(self):
-        """Generate QR code for ticket validation"""
+    
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -219,14 +266,16 @@ class Ticket(models.Model):
         
         img = qr.make_image(fill_color="black", back_color="white")
         
-        # Save QR code
+        # Convert to base64 string for TextField storage
         buffer = BytesIO()
         img.save(buffer, format='PNG')
-        file_name = f'qr_{self.ticket_number}.png'
-        self.qr_code.save(file_name, File(buffer), save=False)
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        self.qr_code = img_str
+        self.save()
         
         return self.qr_code
-    
+        
     def mark_as_used(self):
         """Mark ticket as used"""
         self.is_used = True

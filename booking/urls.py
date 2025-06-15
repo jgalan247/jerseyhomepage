@@ -27,4 +27,7 @@ urlpatterns = [
     
     # Webhook
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),
+    path('order/<str:order_number>/tickets/', views.download_tickets, name='download_tickets'),
+    path('ticket/<int:ticket_id>/download/', views.download_single_ticket, name='download_single_ticket'),  # Add this line
+   
 ]
