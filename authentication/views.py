@@ -1,32 +1,26 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
-from django.contrib.auth import get_user_model
-from .forms import SignUpForm, CustomLoginForm
-from authentication.models import User
+from .forms import SignUpForm
 
 User = get_user_model()
 
 
-def home(request):
-    context = {
-        'title': 'Welcome to Jersey Homepage',
-        'message': 'Your gateway to discovering amazing events in Jersey!'
-    }
-    return render(request, 'home.html', context)
-
-
 def signup_view(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('event_management:event_list')
     
     if request.method == 'POST':
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
-            messages.success(request, 'Account created successfully! Please check your email to verify your account.')
-            return redirect('login')
+            if form.cleaned_data.get('is_organizer'):
+                messages.success(request, 'Organizer account created successfully! Please check your email to verify your account. You can now login and start creating events.')
+            else:
+                messages.success(request, 'Account created successfully! Please check your email to verify your account.')
+            return redirect('authentication:login')
     else:
         form = SignUpForm()
     
@@ -35,15 +29,20 @@ def signup_view(request):
 
 def login_view(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('event_management:event_list')
     
-    form = CustomLoginForm(request, data=request.POST or None)
+    # Using Django's built-in AuthenticationForm instead of CustomLoginForm
+    form = AuthenticationForm(request, data=request.POST or None)
     
     if request.method == 'POST':
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return redirect('home')
+            messages.success(request, f'Welcome back, {user.email}!')
+            
+            # Redirect to next URL if provided, otherwise event_list
+            next_url = request.GET.get('next', 'event_management:event_list')
+            return redirect(next_url)
     
     return render(request, 'authentication/login.html', {'form': form})
 
@@ -51,7 +50,7 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
-    return redirect('home')
+    return redirect('event_management:event_list')
 
 
 @login_required
@@ -61,40 +60,23 @@ def profile_view(request):
 
 def verify_email_view(request, uidb64, token):
     messages.info(request, 'Email verification feature coming soon.')
-    return redirect('home')
+    return redirect('event_management:event_list')
 
 
 @login_required
 def resend_verification_view(request):
     messages.info(request, 'Resend verification feature coming soon.')
-    return redirect('home')
+    return redirect('event_management:event_list')
 
 
 def privacy_policy(request):
-    return render(request, 'events/legal/privacy_policy.html')
+    """Display privacy policy page"""
+    return render(request, 'authentication/privacy_policy.html')
 
 
 def terms_conditions(request):
-    return render(request, 'events/legal/terms_conditions.html')
-
-def events_list(request):
-    """List all events - placeholder for Milestone 3"""
-    return render(request, 'events/events_list.html', {
-        'title': 'All Events',
-        'message': 'Events listing coming in Milestone 3'
-    })
-
-
-def create_event(request):
-    """Create event - placeholder for Milestone 5"""
-    if not request.user.is_authenticated:
-        messages.info(request, 'Please login to create an event.')
-        return redirect('login')
-    
-    return render(request, 'events/create_event.html', {
-        'title': 'Create Event',
-        'message': 'Event creation coming in Milestone 5'
-    })
+    """Display terms and conditions page"""
+    return render(request, 'authentication/terms_conditions.html')
 
 
 def events_list(request):
@@ -109,7 +91,7 @@ def create_event(request):
     """Create event - placeholder for Milestone 5"""
     if not request.user.is_authenticated:
         messages.info(request, 'Please login to create an event.')
-        return redirect('login')
+        return redirect('authentication:login')
     
     return render(request, 'events/create_event.html', {
         'title': 'Create Event',
@@ -122,12 +104,3 @@ def list_event_landing(request):
     return render(request, 'events/list_event_landing.html', {
         'title': 'List Your Event on Jersey Homepage'
     })
-
-def privacy_policy(request):
-    """Display privacy policy page"""
-    return render(request, 'authentication/privacy_policy.html')
-
-
-def terms_conditions(request):
-    """Display terms and conditions page"""
-    return render(request, 'authentication/terms_conditions.html')

@@ -128,6 +128,18 @@ class Order(models.Model):
     def is_paid(self):
         return self.status == 'confirmed' and self.paid_at is not None
     
+    def get_status_color(self):
+        """Return Bootstrap color class for status"""
+        colors = {
+            'pending': 'warning',
+            'processing': 'info',
+            'completed': 'success',
+            'failed': 'danger',
+            'cancelled': 'secondary',
+            'refunded': 'dark'
+        }
+        return colors.get(self.status, 'secondary')
+
     def mark_as_paid(self):
         """Mark order as paid and generate tickets"""
         self.status = 'confirmed'

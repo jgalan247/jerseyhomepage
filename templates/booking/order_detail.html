@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Order {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>Order Details</h1>
+    <div class="card">
+        <div class="card-body">
+            <h5>Order #{{ order.order_number }}</h5>
+            <p>Date: {{ order.created_at|date:"d M Y H:i" }}</p>
+            <p>Status: {{ order.get_status_display }}</p>
+            <p>Total: £{{ order.total_amount|floatformat:2 }}</p>
+            
+            <h6 class="mt-4">Items</h6>
+            <ul>
+                {% for item in order.items.all %}
+                <li>{{ item.event.title }} - Quantity: {{ item.quantity }} - £{{ item.subtotal|floatformat:2 }}</li>
+                {% endfor %}
+            </ul>
+            
+            <a href="{% url 'booking:order_history' %}" class="btn btn-secondary">Back to Orders</a>
+            {% if order.status == 'completed' %}
+                <a href="{% url 'booking:download_tickets' order.order_number %}" class="btn btn-success">Download Tickets</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

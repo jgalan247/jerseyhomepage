@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -17,6 +18,7 @@ from event_management.models import Event
 from .models import Cart, CartItem, Order, OrderItem, Ticket
 from .utils import send_order_confirmation_email, generate_tickets_pdf
 from .utils import generate_single_ticket_pdf 
+
 
 # Initialize Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -75,7 +77,69 @@ def add_to_cart(request):
         
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+    
 
+@require_POST
+def quick_add_to_cart(request):
+    """HTMX endpoint for adding items to cart"""
+    event_id = request.POST.get('event_id')
+    event = get_object_or_404(Event, id=event_id)
+    cart = get_or_create_cart(request)
+    
+    # Create or update cart item
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        event=event,
+        defaults={'quantity': 0, 'price_at_time': event.price}
+    )
+    cart_item.quantity += 1
+    cart_item.save()
+    
+    # Return HTML that updates multiple parts of the page
+    response = HttpResponse()
+    
+    # Update cart count in navbar
+    response.write(f'''
+        <span id="cart-count" 
+              hx-swap-oob="true" 
+              class="badge bg-danger">
+            {cart.total_items}
+        </span>
+    ''')
+    
+    # Show success message
+    response.write('''
+        <div id="cart-message" 
+             hx-swap-oob="true" 
+             class="position-fixed top-0 end-0 p-3" 
+             style="z-index: 1050;">
+            <div class="toast show" role="alert">
+                <div class="toast-header">
+                    <strong class="me-auto">Added to Cart!</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body">
+                    <a href="/booking/cart/" class="btn btn-sm btn-primary">View Cart</a>
+                </div>
+            </div>
+        </div>
+        <script>
+            setTimeout(() => {
+                document.getElementById('cart-message').remove();
+            }, 3000);
+        </script>
+    ''')
+    
+    # Update the button that was clicked
+    response.write(f'''
+        <button hx-post="{request.path}" 
+                hx-vals='{{"event_id": "{event_id}"}}'
+                class="btn btn-success">
+            <i class="fas fa-check"></i> Added - Add Another
+        </button>
+    ''')
+    
+    return response
 
 def cart_view(request):
     """Display cart page"""
@@ -382,7 +446,7 @@ def create_tickets_for_order(order):
     """Create tickets for a completed order"""
     for item in order.items.all():
         item.generate_tickets()
-        
+
 def download_single_ticket(request, ticket_id):
     """Download a single ticket PDF"""
     from .models import Ticket
@@ -474,3 +538,35 @@ def test_stripe(request):
         return redirect(checkout_session.url)
     except Exception as e:
         return HttpResponse(f"Error: {str(e)}")
+
+    @login_required
+    def user_orders(request):
+        """Display user's order history"""
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        
+        context = {
+            'orders': orders,
+            'title': 'My Orders'
+        }
+        return render(request, 'booking/user_orders.html', context)
+@login_required
+def order_history(request):
+    """Display user's order history"""
+    orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    
+    context = {
+        "orders": orders,
+        "title": "My Orders"
+    }
+    return render(request, "booking/user_orders.html", context)
+
+@login_required
+def order_detail(request, order_number):
+    """Display detailed view of a specific order"""
+    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    
+    context = {
+        "order": order,
+        "title": f"Order {order_number}"
+    }
+    return render(request, "booking/order_detail.html", context)

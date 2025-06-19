@@ -3,7 +3,7 @@
 {% block title %}Sign Up - Jersey Events{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8 max-w-md">
+<div class="container mx-auto px-4 py-8 max-w-2xl">
     <div class="bg-white rounded-lg shadow-lg p-8">
         <h1 class="text-3xl font-bold mb-2 text-center">Create Account</h1>
         <p class="text-gray-600 text-center mb-8">Join Jersey Events to discover and book amazing events</p>
@@ -25,51 +25,213 @@
                 </div>
             {% endif %}
             
-            {% for field in form %}
+            <!-- Basic Information -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-semibold text-gray-700">Personal Information</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.first_name.label_tag }}
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        {{ form.last_name.label_tag }}
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
                 <div>
-                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                        {{ field.label }}
-                    </label>
-                    
-                    {% if field.field.widget.input_type == 'checkbox' %}
-                        <div class="flex items-start">
-                            {{ field }}
-                            <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-600">
-                                {% if field.name == 'terms_accepted' %}
-                                    I accept the <a href="{% url 'authentication:terms_conditions' %}" 
-                                                   class="text-blue-600 hover:text-blue-700 underline" 
-                                                   target="_blank">Terms and Conditions</a> 
-                                    and <a href="{% url 'authentication:privacy_policy' %}" 
-                                           class="text-blue-600 hover:text-blue-700 underline" 
-                                           target="_blank">Privacy Policy</a>
-                                {% else %}
-                                    {{ field.label }}
-                                {% endif %}
-                            </label>
-                        </div>
-                    {% else %}
-                        <input type="{{ field.field.widget.input_type }}" 
-                               name="{{ field.name }}" 
-                               id="{{ field.id_for_label }}"
-                               {% if field.value %}value="{{ field.value }}"{% endif %}
-                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               {% if field.field.required %}required{% endif %}
-                               {% if field.field.widget.attrs.placeholder %}placeholder="{{ field.field.widget.attrs.placeholder }}"{% endif %}>
-                    {% endif %}
-                    
-                    {% if field.errors %}
-                        <p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>
-                    {% endif %}
-                    
-                    {% if field.help_text %}
-                        <p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {{ form.email.label_tag }}
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
                     {% endif %}
                 </div>
-            {% endfor %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        {{ form.password1.label_tag }}
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        {{ form.password2.label_tag }}
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
             
-            <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
-                Create Account
-            </button>
+            <!-- Organizer Option -->
+            <div class="border-t pt-6">
+                <div class="flex items-start">
+                    {{ form.is_organizer }}
+                    <label for="{{ form.is_organizer.id_for_label }}" class="ml-2 text-sm text-gray-700 cursor-pointer">
+                        <strong>{{ form.is_organizer.label }}</strong>
+                        <p class="text-xs text-gray-500 mt-1">Check this if you want to create and manage events on our platform</p>
+                    </label>
+                </div>
+            </div>
+            
+            <!-- Organizer Fields (Hidden by default) -->
+            <div id="organizer-fields" class="hidden space-y-6 border-t pt-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-2">Organizer Information</h3>
+                    <p class="text-sm text-blue-700">This information will be displayed on your event pages. You'll complete Stripe setup after registration.</p>
+                </div>
+                
+                <!-- Company Information -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-700">Company Information</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.company_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Company Name <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.company_name }}
+                            {% if form.company_name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.company_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.company_registration.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Company Registration
+                            </label>
+                            {{ form.company_registration }}
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.business_email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Business Email <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.business_email }}
+                            {% if form.business_email.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.business_email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.business_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Business Phone <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.business_phone }}
+                            {% if form.business_phone.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.business_phone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Website
+                        </label>
+                        {{ form.website }}
+                    </div>
+                </div>
+                
+                <!-- Address Information -->
+                <div class="space-y-4">
+                    <h4 class="font-semibold text-gray-700">Business Address</h4>
+                    
+                    <div>
+                        <label for="{{ form.address_line_1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Address Line 1 <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.address_line_1 }}
+                        {% if form.address_line_1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.address_line_1.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="{{ form.address_line_2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Address Line 2
+                        </label>
+                        {{ form.address_line_2 }}
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                City <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.city }}
+                            {% if form.city.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.parish.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Parish <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.parish }}
+                            {% if form.parish.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.parish.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label for="{{ form.postal_code.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                                Postal Code <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.postal_code }}
+                            {% if form.postal_code.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.postal_code.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- About Organization -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        About Your Organization <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Terms and Submit -->
+            <div class="border-t pt-6 space-y-4">
+                <div class="flex items-start">
+                    {{ form.terms_accepted }}
+                    <label for="{{ form.terms_accepted.id_for_label }}" class="ml-2 text-sm text-gray-600">
+                        I accept the <a href="{% url 'authentication:terms_conditions' %}" 
+                                       class="text-blue-600 hover:text-blue-700 underline" 
+                                       target="_blank">Terms and Conditions</a> 
+                        and <a href="{% url 'authentication:privacy_policy' %}" 
+                               class="text-blue-600 hover:text-blue-700 underline" 
+                               target="_blank">Privacy Policy</a>
+                    </label>
+                </div>
+                {% if form.terms_accepted.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.terms_accepted.errors.0 }}</p>
+                {% endif %}
+                
+                <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200 font-semibold">
+                    Create Account
+                </button>
+            </div>
         </form>
         
         <div class="mt-6 text-center">
@@ -82,4 +244,64 @@
         </div>
     </div>
 </div>
+
+<script>
+// Show/hide organizer fields based on checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const organizerCheckbox = document.getElementById('is-organizer-checkbox');
+    const organizerFields = document.getElementById('organizer-fields');
+    
+    organizerCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            organizerFields.classList.remove('hidden');
+            // Pre-fill business email with personal email if empty
+            const personalEmail = document.querySelector('input[name="email"]').value;
+            const businessEmail = document.querySelector('input[name="business_email"]');
+            if (personalEmail && !businessEmail.value) {
+                businessEmail.value = personalEmail;
+            }
+        } else {
+            organizerFields.classList.add('hidden');
+        }
+    });
+    
+    // Show fields if there are errors and checkbox was checked
+    if (organizerCheckbox.checked) {
+        organizerFields.classList.remove('hidden');
+    }
+});
+</script>
+
+<style>
+/* Style all form inputs consistently */
+form input[type="text"],
+form input[type="email"],
+form input[type="password"],
+form input[type="url"],
+form input[type="tel"],
+form select,
+form textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+}
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+}
+</style>
 {% endblock %}

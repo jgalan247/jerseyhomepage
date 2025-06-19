@@ -17,11 +17,17 @@
     <!-- Search Section with Accumulative Filters -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <form method="get" action="{% url 'event_management:event_list' %}" id="event-filter-form" class="space-y-4">
-            <!-- Basic Search -->
+            <!-- Basic Search with HTMX Live Search (Optional - uncomment to enable) -->
             <div class="flex gap-4">
                 <input type="text" name="search" value="{{ search_query }}" 
                        placeholder="Search events, venues, or locations..." 
-                       class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                       class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       {# Uncomment for live search:
+                       hx-get="{% url 'event_management:event_search' %}"
+                       hx-trigger="keyup changed delay:500ms"
+                       hx-target="#events-grid"
+                       hx-indicator="#search-spinner"
+                       #}>
                 
                 <!-- Category Quick Filter -->
                 <select name="category" class="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -35,6 +41,9 @@
                 
                 <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                     <i class="fas fa-search mr-2"></i>Search
+                    <span id="search-spinner" class="htmx-indicator ml-2">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
                 </button>
                 
                 <!-- Toggle Advanced Search -->
@@ -220,8 +229,8 @@ function toggleAdvancedSearch() {
         {% endif %}
     </div>
 
-    <!-- Events Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Events Grid with HTMX container -->
+    <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for event in page_obj %}
         <div class="event-card bg-white rounded-lg shadow-lg overflow-hidden">
             <div class="relative h-48 bg-gray-300">
@@ -298,10 +307,25 @@ function toggleAdvancedSearch() {
                         {% endif %}
                     </div>
                     
-                    <a href="{{ event.get_absolute_url }}" 
-                       class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm">
-                        View Details
-                    </a>
+                    <!-- HTMX-powered Add to Cart or View Details button -->
+                    <div id="event-action-{{ event.id }}">
+                        {% if not event.is_free and not event.has_passed and not event.is_sold_out %}
+                            <!-- Add to Cart button for paid events -->
+                            <button hx-post="{% url 'booking:quick_add_to_cart' %}"
+                                    hx-vals='{"event_id": "{{ event.id }}"}'
+                                    hx-swap="outerHTML"
+                                    hx-target="#event-action-{{ event.id }}"
+                                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm flex items-center">
+                                <i class="fas fa-cart-plus mr-1"></i> Add to Cart
+                            </button>
+                        {% else %}
+                            <!-- View Details for free events or past events -->
+                            <a href="{{ event.get_absolute_url }}" 
+                               class="bg-gray-900 text-white px-4 py-2 rounded hover:bg-gray-800 transition text-sm inline-block">
+                                View Details
+                            </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

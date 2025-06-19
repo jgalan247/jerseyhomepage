@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}My Orders{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1>My Orders</h1>
+    
+    {% if orders %}
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order Number</th>
+                        <th>Date</th>
+                        <th>Events</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.order_number }}</td>
+                        <td>{{ order.created_at|date:"d M Y H:i" }}</td>
+                        <td>
+                            {% for item in order.items.all %}
+                                {{ item.event.title }} (x{{ item.quantity }})<br>
+                            {% endfor %}
+                        </td>
+                        <td>£{{ order.total_amount|floatformat:2 }}</td>
+                        <td>
+                            <span class="badge bg-{{ order.get_status_color }}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'booking:order_success' order.order_number %}" class="btn btn-sm btn-primary">View</a>
+                            {% if order.status == 'completed' %}
+                                <a href="{% url 'booking:download_tickets' order.order_number %}" class="btn btn-sm btn-success">Download Tickets</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>You haven't made any orders yet.</p>
+        <a href="{% url 'event_management:event_list' %}" class="btn btn-primary">Browse Events</a>
+    {% endif %}
+</div>
+{% endblock %}

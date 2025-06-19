@@ -4,6 +4,9 @@ from django.utils import timezone
 from django.urls import reverse
 from django.contrib.postgres.search import SearchVectorField, SearchVector
 from django.contrib.postgres.indexes import GinIndex
+import urllib.parse
+from datetime import timedelta
+from urllib.parse import quote_plus
 
 # Don't call get_user_model() at module level
 # User = get_user_model()  # Remove this line
@@ -107,6 +110,59 @@ class Event(models.Model):
         """Alias for address - used in templates"""
         return self.address
 
+    def get_google_maps_url(self):
+        """Generate Google Maps URL for the venue"""
+        
+        query = f"{self.venue}, {self.address}"
+        return f"https://maps.google.com/maps?q={urllib.parse.quote(query)}"
+
+    def get_share_urls(self):
+        """Generate social media share URLs"""
+        # Get full URL for the event
+        domain = "https://jersey.live"  # Update this with your actual domain
+        event_url = f"{domain}{self.get_absolute_url()}"
+        
+        # Event details for sharing
+        title = quote_plus(self.title)
+        description = quote_plus(f"{self.title} - {self.date.strftime('%d %B %Y')} at {self.venue}")
+        
+        return {
+            'facebook': f"https://www.facebook.com/sharer/sharer.php?u={quote_plus(event_url)}",
+            'twitter': f"https://twitter.com/intent/tweet?text={title}&url={quote_plus(event_url)}",
+            'linkedin': f"https://www.linkedin.com/sharing/share-offsite/?url={quote_plus(event_url)}",
+            'whatsapp': f"https://wa.me/?text={description}%20{quote_plus(event_url)}",
+            'email': f"mailto:?subject={title}&body={description}%0A%0AMore%20info:%20{quote_plus(event_url)}"
+        }
+    
+    def get_calendar_links(self):
+            """Generate calendar links for the event"""
+            # Event details
+            title = urllib.parse.quote(self.title)
+            details = urllib.parse.quote(self.description[:200] + "..." if len(self.description) > 200 else self.description)
+            location = urllib.parse.quote(f"{self.venue}, {self.address}")
+            
+            # Format dates for Google Calendar (YYYYMMDDTHHmmSSZ format)
+            start_date = self.date.strftime('%Y%m%dT%H%M%S')
+            end_date = (self.end_date if self.end_date else self.date + timedelta(hours=2)).strftime('%Y%m%dT%H%M%S')
+            
+            # Google Calendar link
+            google_url = (
+                f"https://calendar.google.com/calendar/render?action=TEMPLATE"
+                f"&text={title}"
+                f"&dates={start_date}/{end_date}"
+                f"&details={details}"
+                f"&location={location}"
+                f"&sf=true&output=xml"
+            )
+            
+            # ICS download link (using your existing download_ics view)
+            ics_url = f"/event/{self.slug}/download-ics/"
+            
+            return {
+                'google': google_url,
+                'ics': ics_url
+            }
+
 class EventImage(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='events/gallery/')
@@ -115,3 +171,4 @@ class EventImage(models.Model):
     
     class Meta:
         ordering = ['order']
+

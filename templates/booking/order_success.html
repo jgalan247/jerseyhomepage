@@ -34,17 +34,7 @@
         
         <!-- Order QR Code Section -->
         <div class="mb-6 text-center">
-            <h3 class="font-semibold mb-2">Order QR Code</h3>
-            <div class="inline-block p-4 bg-gray-50 rounded-lg">
-                {% if order.qr_code %}
-                    <img src="data:image/png;base64,{{ order.qr_code }}" alt="Order QR Code" class="w-48 h-48">
-                {% else %}
-                    <div class="w-48 h-48 bg-gray-200 flex items-center justify-center">
-                        <span class="text-gray-400">QR Code Unavailable</span>
-                    </div>
-                {% endif %}
-            </div>
-            <p class="text-sm text-gray-600 mt-2">Show this QR code at the venue for quick check-in</p>
+           
         </div>
         
         <!-- Customer Information -->
@@ -297,6 +287,10 @@
 </div>
 
 <script>
+
+function downloadTicket(ticketId) {
+    window.location.href = '/booking/ticket/' + ticketId + '/download/';
+}
 function showQRModal(ticketNumber, qrCode) {
     document.getElementById('qrModalTitle').textContent = 'Ticket: ' + ticketNumber;
     document.getElementById('qrModalImage').src = 'data:image/png;base64,' + qrCode;

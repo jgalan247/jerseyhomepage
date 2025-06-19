@@ -20,10 +20,11 @@ urlpatterns = [
     # Order URLs
     path('order/success/<str:order_number>/', views.order_success, name='order_success'),
     path('order/<str:order_number>/tickets/', views.download_tickets, name='download_tickets'),
-    
+    #path('orders/', views.user_orders, name='user_orders'),
     # User order history (comment out until implemented)
-    # path('orders/', views.order_history, name='order_history'),
+    path('orders/', views.order_history, name='order_history'),
     # path('orders/<str:order_number>/', views.order_detail, name='order_detail'),
+    path('quick-add/', views.quick_add_to_cart, name='quick_add_to_cart'),
     
     # Webhook
     path('stripe/webhook/', views.stripe_webhook, name='stripe_webhook'),

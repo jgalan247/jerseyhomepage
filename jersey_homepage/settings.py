@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'authentication',  # Your existing auth app
     'event_management',
     'booking', 
+    'django_htmx',
     # Our apps
     # 'events',
     
@@ -45,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
 ]
 
 # Add debug toolbar in development
