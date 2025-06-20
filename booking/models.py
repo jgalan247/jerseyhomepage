@@ -63,6 +63,17 @@ class CartItem(models.Model):
     def total_price(self):
         return self.quantity * self.price_at_time
     
+    @property
+    def subtotal(self):
+        """Calculate the subtotal for this cart item"""
+        return self.quantity * self.price
+    
+    # Alternative if price comes from event
+    @property
+    def subtotal(self):
+        """Calculate the subtotal for this cart item"""
+        return self.quantity * self.event.price
+
     def save(self, *args, **kwargs):
         if not self.price_at_time:
             self.price_at_time = self.event.price

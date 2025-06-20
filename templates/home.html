@@ -1,48 +1,572 @@
 {% extends 'base.html' %}
+{% load static %}
+{% load static %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}Jersey Events - Discover Amazing Island Experiences{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    .hover-scale:hover {
+        transform: scale(1.05);
+    }
+    .category-card {
+        transition: all 0.3s ease;
+    }
+    .category-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    .event-card {
+        transition: all 0.3s ease;
+    }
+    .event-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    .event-card:hover .event-image {
+        transform: scale(1.1);
+    }
+    .event-image {
+        transition: transform 0.7s ease;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    .animate-pulse {
+        animation: pulse 2s infinite;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section">
-    <div class="container">
-        <h1 class="display-4 fw-bold mb-4">{{ title }}</h1>
-        <p class="lead mb-4">{{ message }}</p>
-        <div class="mt-4">
-            <a href="{% url 'events_list' %}" class="btn btn-warning btn-lg me-3">Browse Events</a>
-            <a href="{% url 'list_event_landing' %}" class="btn btn-outline-light btn-lg">List Your Event</a>
+<!-- Hero Section with Jersey Branding -->
+<section class="relative bg-gradient-to-br from-sky-400 via-sky-500 to-blue-600 text-white overflow-hidden">
+    <div class="absolute inset-0 bg-black/10"></div>
+    
+    <div class="relative z-10 max-w-7xl mx-auto px-6 py-16 lg:py-20">
+        <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <div class="text-center lg:text-left">
+                <h1 class="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                    Jersey Homepage
+                </h1>
+                <p class="text-xl lg:text-2xl mb-8 text-sky-100">
+                    Discover amazing events happening around Jersey island
+                </p>
+                <div class="mb-8">
+                    <p class="text-lg mb-4 text-sky-50">
+                        From coastal walks to cultural festivals, find your perfect island experience
+                    </p>
+                    <ul class="space-y-2 text-left inline-block">
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-water w-5 h-5 text-sky-200"></i>
+                            <span>Stunning coastal activities</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-tree w-5 h-5 text-sky-200"></i>
+                            <span>Beautiful outdoor adventures</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-heart w-5 h-5 text-sky-200"></i>
+                            <span>Community events & festivals</span>
+                        </li>
+                    </ul>
+                </div>
+                <a href="{% url 'event_management:event_list' %}" 
+                   class="inline-block bg-white text-blue-600 px-8 py-4 rounded-full font-semibold hover:bg-sky-50 transform transition-all hover-scale shadow-lg">
+                    Explore All Events
+                </a>
+            </div>
+            
+            <div class="relative">
+                <img src="{% static 'images/homepage.png' %}" 
+                     alt="Jersey Homepage"
+                     class="rounded-2xl shadow-2xl w-full">
+                <div class="absolute inset-0 rounded-2xl bg-gradient-to-t from-blue-900/30 to-transparent"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="absolute -bottom-20 -left-20 w-64 h-64 bg-sky-400 rounded-full opacity-20 blur-3xl"></div>
+    <div class="absolute -top-20 -right-20 w-96 h-96 bg-blue-500 rounded-full opacity-20 blur-3xl"></div>
+</section>
+
+<!-- Today's Events Alert -->
+{% if today_events %}
+<section class="bg-amber-50 border-y-2 border-amber-300 py-4 px-6">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-3">
+        <div class="animate-pulse">
+            <i class="fas fa-star text-amber-600 text-xl"></i>
+        </div>
+        <p class="text-amber-800 font-semibold">
+            {{ today_events|length }} exciting event{{ today_events|length|pluralize }} happening today in Jersey!
+        </p>
+        <a href="{% url 'event_management:event_list' %}?filter=today" 
+           class="text-amber-700 underline hover:text-amber-800 font-medium">
+            Book Now
+        </a>
+    </div>
+</section>
+{% endif %}
+
+<!-- Event Categories -->
+<section class="py-16 px-6 bg-white">
+    <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
+                Find Your Perfect Jersey Experience
+            </h2>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                Whether you're seeking adventure, culture, relaxation, or family fun, Jersey has something special waiting for you
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Tickets & Payments (Modal) -->
+            <div onclick="openPaymentModal()" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-green-500 to-emerald-600 text-white cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-credit-card text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Tickets & Payments</h3>
+                        <p class="text-white/80 text-sm">Learn about ticketing</p>
+                    </div>
+                    <i class="fas fa-info-circle text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </div>
+            
+            <a href="{% url 'event_management:event_list' %}?category=arts-culture" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-purple-500 to-pink-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-palette text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Arts and Culture</h3>
+                        <p class="text-white/80 text-sm">Museums, galleries & shows</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </a>
+            
+            <a href="{% url 'event_management:event_list' %}?filter=free" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-cyan-500 to-teal-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-gift text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Free Events</h3>
+                        <p class="text-white/80 text-sm">No ticket cost events</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </a>
+            
+            <a href="{% url 'event_management:event_list' %}?filter=pet-friendly" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-orange-500 to-amber-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-dog text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Pets Allowed</h3>
+                        <p class="text-white/80 text-sm">Pet-friendly events</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </a>
+        </div>
+        
+        <!-- Additional Category Row -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            <a href="{% url 'event_management:event_list' %}?category=walks-wellness" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-pink-500 to-rose-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-heart text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Walks, Yoga and Mindfulness</h3>
+                        <p class="text-white/80 text-sm">Wellness & outdoor activities</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </a>
+            
+            <a href="{% url 'event_management:event_list' %}?category=sports-activities" 
+               class="category-card relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <i class="fas fa-running text-3xl mb-3 text-white opacity-90"></i>
+                        <h3 class="text-xl font-bold mb-1">Sports and Things to Do</h3>
+                        <p class="text-white/80 text-sm">Active adventures & sports</p>
+                    </div>
+                    <i class="fas fa-chevron-right text-white/60"></i>
+                </div>
+                <div class="absolute -bottom-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+            </a>
         </div>
     </div>
 </section>
 
-<!-- Placeholder Content -->
-<section class="py-5">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <h2 class="mb-4">Coming Soon!</h2>
-                <p class="lead">We're building something amazing for Jersey.</p>
-                <p>Discover local events, buy tickets, and explore everything Jersey has to offer.</p>
-                
-                <!-- Jersey Island SVG Placeholder -->
-                <div class="my-5">
-                    <svg width="200" height="150" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M 50 50 Q 100 20 150 50 L 160 80 Q 100 120 40 80 Z" 
-                              fill="#DC143C" 
-                              opacity="0.8" 
-                              stroke="#000080" 
-                              stroke-width="2"/>
-                        <text x="100" y="75" text-anchor="middle" fill="white" font-size="16" font-weight="bold">Jersey</text>
-                    </svg>
+<!-- Featured Events -->
+<section class="py-16 px-6 bg-gray-50">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                    <i class="fas fa-chart-line text-blue-600"></i>
+                    Featured Jersey Events
+                </h2>
+                <p class="text-gray-600 mt-2">Hand-picked experiences showcasing the best of our island</p>
+            </div>
+            <a href="{% url 'event_management:event_list' %}?filter=featured" 
+               class="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+                View All
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for event in featured_events|slice:":3" %}
+            <a href="{% url 'event_management:event_detail' event.slug %}" 
+               class="event-card group relative overflow-hidden rounded-xl bg-white shadow-lg">
+                <div class="relative h-48 overflow-hidden">
+                    <img src="{% if event.image %}{{ event.image.url }}{% else %}https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=500&h=300&fit=crop{% endif %}" 
+                         alt="{{ event.title }}"
+                         class="event-image w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </div>
                 
-                <div class="alert alert-info" role="alert">
-                    <strong>Development Status:</strong> Milestone 2 Complete - User Authentication System! 🎉
-                    <br>
-                    <strong>Next:</strong> Milestone 3 - Event Models and Display
+                <div class="p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium 
+                            {% if event.category == 'Arts and Culture' %}bg-purple-100 text-purple-700
+                            {% elif event.category == 'Sports and Things to Do' %}bg-blue-100 text-blue-700
+                            {% elif event.category == 'Tickets and Pet\'s Paw' %}bg-green-100 text-green-700
+                            {% elif event.category == 'Walks, Yoga and Mindfulness' %}bg-pink-100 text-pink-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ event.category }}
+                        </span>
+                        {% if event.is_today %}
+                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium animate-pulse">
+                            Today!
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <h3 class="text-xl font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors">
+                        {{ event.title }}
+                    </h3>
+                    
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {{ event.description|truncatewords:20 }}
+                    </p>
+                    
+                    <div class="space-y-2 text-sm text-gray-500">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar w-4 h-4"></i>
+                            <span>{{ event.date|date:"D, M d" }}</span>
+                            <i class="fas fa-clock w-4 h-4 ml-2"></i>
+                            <span>{{ event.time|time:"H:i" }}</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt w-4 h-4"></i>
+                            <span>{{ event.location }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-users w-4 h-4"></i>
+                                <span>{{ event.attendees }}/{{ event.capacity }}</span>
+                            </div>
+                            <span class="font-bold text-lg text-gray-800">
+                                {% if event.price == 0 %}Free{% else %}£{{ event.price }}{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex items-center text-blue-600 font-medium group-hover:text-blue-700">
+                        View Details
+                        <i class="fas fa-chevron-right w-4 h-4 ml-1 transform transition-transform group-hover:translate-x-1"></i>
+                    </div>
                 </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Premium Events -->
+<section class="py-16 px-6 bg-gradient-to-br from-amber-50 to-yellow-50">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                    <i class="fas fa-star text-amber-500"></i>
+                    Premium Island Experiences
+                </h2>
+                <p class="text-gray-600 mt-2">Exclusive events for unforgettable memories</p>
+            </div>
+            <a href="{% url 'event_management:event_list' %}?filter=premium" 
+               class="text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
+                View All
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for event in premium_events|slice:":3" %}
+            <a href="{% url 'event_management:event_detail' event.slug %}" 
+               class="event-card group relative overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-amber-300">
+                <div class="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-400 to-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
+                    <i class="fas fa-sparkles w-3 h-3"></i>
+                    Premium
+                </div>
+                
+                <div class="relative h-48 overflow-hidden">
+                    <img src="{% if event.image %}{{ event.image.url }}{% else %}https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=500&h=300&fit=crop{% endif %}" 
+                         alt="{{ event.title }}"
+                         class="event-image w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </div>
+                
+                <div class="p-5">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium 
+                            {% if event.category == 'Arts and Culture' %}bg-purple-100 text-purple-700
+                            {% elif event.category == 'Sports and Things to Do' %}bg-blue-100 text-blue-700
+                            {% elif event.category == 'Tickets and Pet\'s Paw' %}bg-green-100 text-green-700
+                            {% elif event.category == 'Walks, Yoga and Mindfulness' %}bg-pink-100 text-pink-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ event.category }}
+                        </span>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold mb-2 text-gray-800 group-hover:text-amber-600 transition-colors">
+                        {{ event.title }}
+                    </h3>
+                    
+                    <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {{ event.description|truncatewords:20 }}
+                    </p>
+                    
+                    <div class="space-y-2 text-sm text-gray-500">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-calendar w-4 h-4"></i>
+                            <span>{{ event.date|date:"D, M d" }}</span>
+                            <i class="fas fa-clock w-4 h-4 ml-2"></i>
+                            <span>{{ event.time|time:"H:i" }}</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-map-marker-alt w-4 h-4"></i>
+                            <span>{{ event.location }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-users w-4 h-4"></i>
+                                <span>{{ event.attendees }}/{{ event.capacity }}</span>
+                            </div>
+                            <span class="font-bold text-lg text-gray-800">
+                                £{{ event.price }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex items-center text-amber-600 font-medium group-hover:text-amber-700">
+                        View Details
+                        <i class="fas fa-chevron-right w-4 h-4 ml-1 transform transition-transform group-hover:translate-x-1"></i>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Jersey Benefits Section -->
+<section class="py-16 px-6 bg-white">
+    <div class="max-w-7xl mx-auto">
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-12">
+            Why Choose Jersey Events?
+        </h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-map-marked-alt text-3xl text-blue-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Island-Wide Coverage</h3>
+                <p class="text-gray-600">From St Helier to Gorey, discover events across all 12 parishes</p>
+            </div>
+            <div class="text-center">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-3xl text-green-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Local Community</h3>
+                <p class="text-gray-600">Connect with fellow islanders and visitors at authentic Jersey events</p>
+            </div>
+            <div class="text-center">
+                <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-award text-3xl text-purple-600"></i>
+                </div>
+                <h3 class="text-xl font-semibold mb-2">Curated Quality</h3>
+                <p class="text-gray-600">Every event is verified to ensure the best experiences on our beautiful island</p>
             </div>
         </div>
     </div>
 </section>
+
+<!-- CTA Section -->
+<section class="bg-gradient-to-r from-blue-600 to-sky-600 text-white py-16 px-6">
+    <div class="max-w-4xl mx-auto text-center">
+        <h2 class="text-3xl lg:text-4xl font-bold mb-4">
+            Start Your Jersey Adventure Today
+        </h2>
+        <p class="text-xl mb-8 text-sky-100">
+            Join thousands of locals and visitors discovering the best events our island has to offer
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="{% url 'event_management:event_list' %}" 
+               class="inline-block bg-white text-blue-600 px-8 py-3 rounded-full font-semibold hover:bg-sky-50 transform transition-all hover-scale">
+                Browse All Events
+            </a>
+            <a href="#" 
+               onclick="alert('Newsletter signup coming soon! Stay tuned for updates.'); return false;"
+               class="inline-block bg-sky-500 text-white px-8 py-3 rounded-full font-semibold hover:bg-sky-400 transform transition-all hover-scale border-2 border-white">
+                Get Event Updates
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Tickets & Payments Modal -->
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
+            <h2 class="text-2xl font-bold text-gray-800">Tickets & Payments Information</h2>
+            <button onclick="closePaymentModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times text-2xl"></i>
+            </button>
+        </div>
+        
+        <div class="p-6 space-y-6">
+            <!-- Processing Fees -->
+            <div class="bg-blue-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-blue-900 mb-3 flex items-center">
+                    <i class="fas fa-percentage text-blue-600 mr-3"></i>
+                    Processing Fees
+                </h3>
+                <p class="text-blue-800">
+                    A <strong>7% processing fee</strong> is applied to each ticket purchase. This fee helps us maintain our platform and provide secure payment processing.
+                </p>
+            </div>
+            
+            <!-- Payment Methods -->
+            <div class="bg-green-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-green-900 mb-3 flex items-center">
+                    <i class="fas fa-wallet text-green-600 mr-3"></i>
+                    Accepted Payment Methods
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div class="flex items-center space-x-3 bg-white p-4 rounded-lg">
+                        <i class="fas fa-credit-card text-2xl text-gray-700"></i>
+                        <span class="font-medium">Credit/Debit Cards</span>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-white p-4 rounded-lg">
+                        <i class="fab fa-google-pay text-2xl text-gray-700"></i>
+                        <span class="font-medium">Google Pay</span>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-white p-4 rounded-lg">
+                        <i class="fab fa-apple-pay text-2xl text-gray-700"></i>
+                        <span class="font-medium">Apple Pay</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Refund Policy -->
+            <div class="bg-amber-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-amber-900 mb-3 flex items-center">
+                    <i class="fas fa-undo-alt text-amber-600 mr-3"></i>
+                    Refund Policy
+                </h3>
+                <p class="text-amber-800">
+                    <strong>Refunds are handled by individual event organizers.</strong> Each event has its own refund policy. Please check the event details or contact the organizer directly for refund information.
+                </p>
+            </div>
+            
+            <!-- Ticket Delivery -->
+            <div class="bg-purple-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-purple-900 mb-3 flex items-center">
+                    <i class="fas fa-envelope text-purple-600 mr-3"></i>
+                    Ticket Delivery
+                </h3>
+                <p class="text-purple-800 mb-4">
+                    After successful payment, you will receive:
+                </p>
+                <ul class="space-y-2 text-purple-700">
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-purple-600 mr-2 mt-1"></i>
+                        <span>Confirmation email with your tickets</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-purple-600 mr-2 mt-1"></i>
+                        <span>QR codes for easy check-in at the event</span>
+                    </li>
+                    <li class="flex items-start">
+                        <i class="fas fa-check-circle text-purple-600 mr-2 mt-1"></i>
+                        <span>PDF tickets that you can print or save to your phone</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Security -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-xl font-semibold text-gray-900 mb-3 flex items-center">
+                    <i class="fas fa-shield-alt text-gray-600 mr-3"></i>
+                    Secure Payments
+                </h3>
+                <p class="text-gray-700">
+                    All payments are processed securely through our trusted payment partners. Your financial information is encrypted and never stored on our servers.
+                </p>
+            </div>
+        </div>
+        
+        <div class="sticky bottom-0 bg-gray-50 p-6 border-t">
+            <button onclick="closePaymentModal()" 
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
+                Got it, thanks!
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Payment Modal Functions - Defined immediately
+    function openPaymentModal() {
+        console.log('Opening modal...'); // Debug log
+        document.getElementById('paymentModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    }
+    
+    function closePaymentModal() {
+        console.log('Closing modal...'); // Debug log
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.body.style.overflow = 'auto'; // Re-enable scrolling
+    }
+    
+    // Close modal when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('paymentModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closePaymentModal();
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

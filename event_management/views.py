@@ -1,5 +1,5 @@
 # event_management/views.py
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
@@ -8,7 +8,7 @@ from django.views.generic import ListView
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.http import HttpResponse
 from datetime import timedelta
-#import pytz
+from django.contrib import messages
 
 def event_list(request):
     events = Event.objects.filter(is_active=True, date__gte=timezone.now())
@@ -52,19 +52,42 @@ def event_list(request):
     if price_max:
         events = events.filter(price__lte=price_max)
     
-    # Quick filters - Now accumulative!
+    # Quick filters - Using OR logic with Q objects
     selected_filters = request.GET.getlist('filter')  # Get multiple values
     
-    if 'free' in selected_filters:
-        events = events.filter(price=0)
-    if 'weekend' in selected_filters:
-        events = events.filter(date__week_day__in=[6, 7, 1])
-    if 'pet-friendly' in selected_filters:
-        events = events.filter(pet_friendly=True)
-    if 'family-friendly' in selected_filters:
-        events = events.filter(family_friendly=True)
-    if 'offers' in selected_filters:
-        events = events.filter(has_offers=True)
+    if selected_filters:
+        filter_query = Q()
+        
+        if 'free' in selected_filters:
+            filter_query |= Q(price=0)
+        if 'weekend' in selected_filters:
+            filter_query |= Q(date__week_day__in=[6, 7, 1])
+        if 'pet-friendly' in selected_filters:
+            filter_query |= Q(pet_friendly=True)
+        if 'family-friendly' in selected_filters:
+            filter_query |= Q(family_friendly=True)
+        if 'offers' in selected_filters:
+            filter_query |= Q(has_offers=True)
+        
+        if filter_query:
+            events = events.filter(filter_query)
+    
+    # Handle single filter parameter (from homepage links)
+    single_filter = request.GET.get('filter')
+    if single_filter and not selected_filters:  # Only apply if no multiple filters
+        if single_filter == 'free':
+            events = events.filter(price=0)
+        elif single_filter == 'pet-friendly':
+            events = events.filter(pet_friendly=True)
+        elif single_filter == 'featured':
+            events = events.filter(is_featured=True)
+        elif single_filter == 'premium':
+            events = events.filter(is_premium=True)
+        elif single_filter == 'today':
+            events = events.filter(date__date=timezone.now().date())
+        elif single_filter == 'upcoming':
+            week_from_now = timezone.now() + timedelta(days=7)
+            events = events.filter(date__lte=week_from_now)
     
     # Sort
     sort = request.GET.get('sort', '-date')
@@ -101,6 +124,36 @@ def event_list(request):
     
     return render(request, 'event_management/event_list.html', context)
 
+
+def homepage(request):
+    today = timezone.now().date()
+    
+    context = {
+        'featured_events': Event.objects.filter(
+            is_featured=True,
+            date__gte=today
+        ).order_by('date')[:6],
+        
+        'premium_events': Event.objects.filter(
+            is_premium=True,
+            date__gte=today
+        ).order_by('date')[:6],
+        
+        'today_events': Event.objects.filter(
+            date=today
+        ),
+    }
+    
+    for event in context['featured_events']:
+        event.is_today = event.date == today
+    
+    return render(request, 'home.html', context)
+
+def newsletter_signup(request):
+    # For now, just redirect to home with a message   
+    messages.success(request, "Thanks for your interest! Newsletter coming soon.")
+    return redirect('home')
+
 def event_detail(request, slug):
     event = get_object_or_404(Event, slug=slug, is_active=True)
     related_events = Event.objects.filter(
@@ -116,14 +169,20 @@ def event_detail(request, slug):
     
     return render(request, 'event_management/event_detail.html', context)
 
+
 # Placeholder views for future functionality
 def create_event(request):
     """Create a new event"""
     return render(request, 'event_management/create_event.html', {})
 
+
 def list_event_landing(request):
     """Landing page for listing events"""
     return render(request, 'event_management/list_event_landing.html', {})
+
+def faq_view(request):
+    """Display the FAQ page"""
+    return render(request, 'faq.html')
 
 def download_ics(request, slug):
     """Generate and download ICS file for the event"""
@@ -143,7 +202,7 @@ def download_ics(request, slug):
     ]
     
     # Add end time (if not set, default to 2 hours after start)
-    end_date = event.end_date if event.end_date else (event.date + timedelta(hours=2))
+    end_date = event.end_date if hasattr(event, 'end_date') and event.end_date else (event.date + timedelta(hours=2))
     cal_lines.append(f'DTEND:{end_date.strftime("%Y%m%dT%H%M%S")}')
     
     # Add event details - Fix the backslash issue
@@ -165,6 +224,8 @@ def download_ics(request, slug):
     response['Content-Disposition'] = f'attachment; filename="{event.slug}.ics"'
     
     return response
+
+
 class EventSearchView(ListView):
     model = Event
     template_name = 'events/search_results.html'
@@ -196,7 +257,7 @@ class EventSearchView(ListView):
             
         # Price range
         price_min = self.request.GET.get('price_min')
-        price_max = self.request.GET.get('price_max')
+        price_max = self.request.get('price_max')
         if price_min:
             queryset = queryset.filter(price__gte=price_min)
         if price_max:
@@ -222,3 +283,4 @@ class EventSearchView(ListView):
             'sort': self.request.GET.get('sort', '-date'),
         }
         return context
+    

@@ -1,0 +1,16 @@
+Welcome to Jersey Events!
+
+Hi {{ user.first_name|default:'there' }},
+
+Please verify your email address by clicking the link below:
+
+{{ verification_url }}
+
+If you didn't create an account, please ignore this email.
+
+Best regards,
+Jersey Events Team
+
+---
+This email was sent to {{ user.email }}
+© {% now "Y" %} Jersey Events. All rights reserved.

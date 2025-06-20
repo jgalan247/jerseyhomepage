@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Frequently Asked Questions - Jersey Events{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h1>
+            <p class="text-lg text-gray-600">Everything you need to know about Jersey Events</p>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Quick Links</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <a href="#tickets" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-ticket-alt mr-2"></i>
+                    Tickets & Booking
+                </a>
+                <a href="#payments" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Payments & Fees
+                </a>
+                <a href="#security" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    Safety & Security
+                </a>
+                <a href="#organizers" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-user-tie mr-2"></i>
+                    For Organizers
+                </a>
+                <a href="#refunds" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-undo-alt mr-2"></i>
+                    Refunds & Cancellations
+                </a>
+                <a href="#account" class="flex items-center text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-user-circle mr-2"></i>
+                    Account & Support
+                </a>
+            </div>
+        </div>
+
+        <!-- FAQ Sections -->
+        <div class="space-y-8">
+            <!-- Tickets & Booking Section -->
+            <section id="tickets" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-ticket-alt text-blue-600 mr-3"></i>
+                    Tickets & Booking
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do I book tickets?</h3>
+                        <p class="text-gray-600">
+                            Simply browse our events, select the one you're interested in, choose your ticket quantity, and proceed to checkout. You'll need to create an account or log in to complete your purchase.
+                        </p>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How will I receive my tickets?</h3>
+                        <p class="text-gray-600">
+                            After successful payment, you'll receive an email confirmation with:
+                        </p>
+                        <ul class="list-disc list-inside mt-2 text-gray-600 ml-4">
+                            <li>PDF tickets attached to the email</li>
+                            <li>QR codes for quick entry at the venue</li>
+                            <li>A link to access your tickets in your account</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Can I buy tickets for someone else?</h3>
+                        <p class="text-gray-600">
+                            Yes! During checkout, you can specify different attendee details. The tickets will still be sent to your email address, and you can forward them to the attendees.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What if I don't receive my tickets?</h3>
+                        <p class="text-gray-600">
+                            First, check your spam/junk folder. If you still can't find them, log into your account to access your tickets directly, or contact our support team for assistance.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payments & Fees Section -->
+            <section id="payments" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-credit-card text-green-600 mr-3"></i>
+                    Payments & Fees
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What payment methods do you accept?</h3>
+                        <p class="text-gray-600 mb-3">We accept the following payment methods:</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-credit-card text-gray-700 mr-2"></i>
+                                <span>Credit/Debit Cards</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fab fa-google-pay text-gray-700 mr-2"></i>
+                                <span>Google Pay</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fab fa-apple-pay text-gray-700 mr-2"></i>
+                                <span>Apple Pay</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What are the booking fees?</h3>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-gray-700">
+                                <strong>7% processing fee</strong> is applied to each ticket purchase. This fee covers:
+                            </p>
+                            <ul class="list-disc list-inside mt-2 text-gray-600 ml-4">
+                                <li>Secure payment processing</li>
+                                <li>Platform maintenance and support</li>
+                                <li>Ticket generation and delivery</li>
+                                <li>Customer service</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">When will I be charged?</h3>
+                        <p class="text-gray-600">
+                            Your payment is processed immediately upon completing your booking. You'll receive a payment confirmation along with your tickets.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section id="security" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-shield-alt text-purple-600 mr-3"></i>
+                    Safety & Security
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Is my payment information secure?</h3>
+                        <p class="text-gray-600">
+                            Absolutely. We use industry-standard SSL encryption for all transactions. Your payment details are processed by certified payment providers and are never stored on our servers.
+                        </p>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do you verify events and organizers?</h3>
+                        <p class="text-gray-600">
+                            All event organizers go through a verification process including:
+                        </p>
+                        <ul class="list-disc list-inside mt-2 text-gray-600 ml-4">
+                            <li>Identity verification</li>
+                            <li>Business registration checks (for companies)</li>
+                            <li>Review of past event history</li>
+                            <li>Ongoing monitoring of event quality and customer feedback</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What if I suspect fraudulent activity?</h3>
+                        <p class="text-gray-600">
+                            If you notice any suspicious activity or have concerns about an event, please contact our security team immediately at security@jerseyevents.com. We take all reports seriously and investigate promptly.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Organizers Section -->
+            <section id="organizers" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-user-tie text-orange-600 mr-3"></i>
+                    For Event Organizers
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do I become an event organizer?</h3>
+                        <p class="text-gray-600">
+                            Register for a regular account, then upgrade to an organizer account by providing additional business information and completing our verification process. This includes providing business details, address, and agreeing to our organizer terms.
+                        </p>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What fees do organizers pay?</h3>
+                        <p class="text-gray-600">
+                            Organizers receive payments minus the 7% platform fee. This means if a ticket is sold for £100, the organizer receives £93. All fees are transparent and shown during event creation.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">When do I receive payment for ticket sales?</h3>
+                        <p class="text-gray-600">
+                            Payments are processed through Stripe Connect and are typically available within 2-3 business days after the event date. For recurring events, payments are processed weekly.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Refunds Section -->
+            <section id="refunds" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-undo-alt text-red-600 mr-3"></i>
+                    Refunds & Cancellations
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What is the refund policy?</h3>
+                        <div class="bg-amber-50 p-4 rounded-lg">
+                            <p class="text-gray-700">
+                                <strong>Refund policies are set by individual event organizers.</strong> Each event page displays its specific refund policy. Common policies include:
+                            </p>
+                            <ul class="list-disc list-inside mt-2 text-gray-600 ml-4">
+                                <li>Full refund up to 7 days before the event</li>
+                                <li>50% refund up to 48 hours before the event</li>
+                                <li>No refunds within 48 hours of the event</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do I request a refund?</h3>
+                        <p class="text-gray-600">
+                            Log into your account, go to "My Tickets," find the relevant booking, and click "Request Refund." Your request will be reviewed according to the event's refund policy.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">What if an event is cancelled?</h3>
+                        <p class="text-gray-600">
+                            If an event is cancelled by the organizer, you'll receive a full refund including all fees. Refunds for cancelled events are processed automatically within 5-7 business days.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Account Section -->
+            <section id="account" class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-user-circle text-indigo-600 mr-3"></i>
+                    Account & Support
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do I reset my password?</h3>
+                        <p class="text-gray-600">
+                            Click "Forgot Password" on the login page, enter your email address, and we'll send you a password reset link. The link expires after 24 hours for security reasons.
+                        </p>
+                    </div>
+                    
+                    <div class="border-b pb-4">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">How do I contact customer support?</h3>
+                        <p class="text-gray-600">
+                            You can reach our support team through:
+                        </p>
+                        <ul class="list-disc list-inside mt-2 text-gray-600 ml-4">
+                            <li>Email: support@jerseyevents.com</li>
+                            <li>Phone: +44 (0) 1534 123456 (Mon-Fri, 9am-5pm)</li>
+                            <li>Live chat: Available on our website during business hours</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">Can I delete my account?</h3>
+                        <p class="text-gray-600">
+                            Yes, you can request account deletion by contacting our support team. Please note that we may need to retain certain information for legal and tax purposes, but your personal data will be anonymized.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Contact Support -->
+        <div class="mt-12 bg-blue-50 rounded-lg p-8 text-center">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Still have questions?</h2>
+            <p class="text-gray-600 mb-6">Our support team is here to help!</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="mailto:support@jerseyevents.com" 
+                   class="inline-flex items-center justify-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-envelope mr-2"></i>
+                    Email Support
+                </a>
+                <a href="#" onclick="alert('Contact form coming soon!'); return false;"
+                   class="inline-flex items-center justify-center bg-white text-blue-600 border-2 border-blue-600 px-6 py-3 rounded-lg hover:bg-blue-50 transition">
+                    <i class="fas fa-comments mr-2"></i>
+                    Contact Form
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Smooth scrolling for FAQ navigation */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Add some padding when jumping to sections */
+section[id] {
+    scroll-margin-top: 80px;
+}
+</style>
+{% endblock %}
