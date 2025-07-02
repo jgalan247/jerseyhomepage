@@ -3,10 +3,6 @@
 
 {% block title %}Checkout - Jersey Events{% endblock %}
 
-{% block extra_head %}
-<script src="https://js.stripe.com/v3/"></script>
-{% endblock %}
-
 {% block content %}
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-8">Checkout</h1>
@@ -14,7 +10,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Checkout Form -->
         <div class="lg:col-span-2">
-            <form id="checkout-form" method="POST" action="{% url 'booking:process_payment' %}">
+            <form id="checkout-form" method="POST">
                 {% csrf_token %}
                 
                 <!-- Customer Information -->
@@ -94,36 +90,25 @@
                                 <div class="flex-1">
                                     <h4 class="font-semibold">{{ item.event.title }}</h4>
                                     <p class="text-sm text-gray-600">
-                                        {{ item.event.date|date:"l, j F Y" }} at {{ item.event.time|time:"g:i A" }}
+                                        {{ item.event.start_date|date:"l, j F Y" }} at {{ item.event.start_date|time:"g:i A" }}
                                     </p>
-                                    <p class="text-sm text-gray-600">{{ item.event.venue }}</p>
+                                    <p class="text-sm text-gray-600">{{ item.event.location }}</p>
                                     <p class="text-sm mt-1">
-                                        {{ item.quantity }} × £{{ item.price_at_time|floatformat:2 }}
+                                        {{ item.ticket_type.name }}: {{ item.quantity }} × £{{ item.ticket_type.price|floatformat:2 }}
                                     </p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="font-semibold">£{{ item.total_price|floatformat:2 }}</p>
+                                    <p class="font-semibold">£{{ item.subtotal|floatformat:2 }}</p>
                                 </div>
                             </div>
                         {% endfor %}
                     </div>
                 </div>
                 
-                <!-- Payment Method -->
-                <div class="bg-white rounded-lg shadow p-6 mb-6">
-                    <h2 class="text-xl font-semibold mb-4">Payment Method</h2>
-                    
-                    <div id="payment-element" class="mb-4">
-                        <!-- Stripe Payment Element will be mounted here -->
-                    </div>
-                    
-                    <div id="payment-message" class="hidden text-red-600 text-sm mb-4"></div>
-                </div>
-                
                 <!-- Terms and Conditions -->
                 <div class="bg-white rounded-lg shadow p-6">
                     <label class="flex items-start">
-                        <input type="checkbox" name="terms" required
+                        <input type="checkbox" id="terms" name="terms" required
                                class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                         <span class="ml-2 text-sm text-gray-700">
                             I agree to the 
@@ -143,8 +128,8 @@
                 
                 <div class="space-y-2 mb-4">
                     <div class="flex justify-between">
-                        <span>Subtotal ({{ cart.total_items }} item{{ cart.total_items|pluralize }})</span>
-                        <span>£{{ cart.total_price|floatformat:2 }}</span>
+                        <span>Subtotal</span>
+                        <span>£{{ total|floatformat:2 }}</span>
                     </div>
                     <div class="flex justify-between text-sm text-gray-600">
                         <span>Service Fee</span>
@@ -155,14 +140,15 @@
                 <div class="border-t pt-4 mb-6">
                     <div class="flex justify-between text-lg font-semibold">
                         <span>Total</span>
-                        <span>£{{ cart.total_price|floatformat:2 }}</span>
+                        <span>£{{ total|floatformat:2 }}</span>
                     </div>
                 </div>
                 
-                <button type="submit" form="checkout-form" id="submit-button"
-                        class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-semibold">
-                    Complete Purchase
-                </button>
+                <!-- PayPal Button Container -->
+                <div id="paypal-button-container"></div>
+                
+                <!-- Error message container -->
+                <div id="payment-message" class="hidden mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm"></div>
                 
                 <div class="mt-4 text-center">
                     <a href="{% url 'booking:cart' %}" class="text-sm text-blue-600 hover:text-blue-700">
@@ -180,7 +166,7 @@
                         <span>Secure checkout</span>
                     </div>
                     <div class="mt-2 text-center">
-                        <img src="{% static 'images/stripe-badge.png' %}" alt="Powered by Stripe" class="h-8 mx-auto">
+                        <p class="text-xs text-gray-500">Powered by PayPal</p>
                     </div>
                 </div>
             </div>
@@ -188,67 +174,129 @@
     </div>
 </div>
 
-<script>
-// Initialize Stripe
-const stripe = Stripe('{{ stripe_public_key }}');
-let elements;
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=GBP"></script>
 
-document.addEventListener('DOMContentLoaded', async function() {
-    const form = document.getElementById('checkout-form');
-    const submitButton = document.getElementById('submit-button');
-    const messageContainer = document.getElementById('payment-message');
-    
-    // Handle form submission
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+<script>
+// PayPal Smart Payment Buttons
+paypal.Buttons({
+    // Called when user clicks the PayPal button
+    createOrder: function(data, actions) {
+        // Validate form first
+        const form = document.getElementById('checkout-form');
+        const termsCheckbox = document.getElementById('terms');
+        const messageContainer = document.getElementById('payment-message');
         
-        // Validate form
+        // Hide any previous messages
+        messageContainer.classList.add('hidden');
+        
+        // Check if form is valid
         if (!form.checkValidity()) {
             form.reportValidity();
-            return;
+            return false;
         }
         
-        // Disable submit button
-        submitButton.disabled = true;
-        submitButton.textContent = 'Processing...';
+        // Check terms acceptance
+        if (!termsCheckbox.checked) {
+            showMessage('Please accept the terms and conditions to continue.');
+            return false;
+        }
         
         // Get form data
         const formData = new FormData(form);
+        const customerData = {
+            first_name: formData.get('first_name'),
+            last_name: formData.get('last_name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            create_account: formData.get('create_account') === 'on'
+        };
         
-        try {
-            // Process payment
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // Redirect to Stripe Checkout
-                window.location.href = data.checkout_url;
-            } else {
-                showMessage(data.error || 'An error occurred');
-                submitButton.disabled = false;
-                submitButton.textContent = 'Complete Purchase';
+        // Create order on your server
+        return fetch('{% url "booking:create_ticket_order" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(customerData)
+        })
+        .then(function(res) {
+            return res.json();
+        })
+        .then(function(orderData) {
+            if (orderData.error) {
+                showMessage(orderData.error);
+                return false;
             }
-        } catch (error) {
+            return orderData.id; // PayPal order ID
+        })
+        .catch(function(err) {
             showMessage('An error occurred. Please try again.');
-            submitButton.disabled = false;
-            submitButton.textContent = 'Complete Purchase';
-        }
-    });
-    
-    function showMessage(messageText) {
-        messageContainer.textContent = messageText;
-        messageContainer.classList.remove('hidden');
+            console.error(err);
+            return false;
+        });
+    },
+
+    // Called when payment is approved
+    onApprove: function(data, actions) {
+        // Show loading state
+        showMessage('Processing payment...', 'info');
         
-        // Scroll to message
-        messageContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Capture the payment
+        return fetch('{% url "booking:capture_ticket_payment" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                order_id: data.orderID
+            })
+        })
+        .then(function(res) {
+            return res.json();
+        })
+        .then(function(orderData) {
+            if (orderData.success) {
+                // Redirect to success page
+                window.location.href = orderData.redirect_url || '{% url "booking:order_success" %}';
+            } else {
+                showMessage(orderData.error || 'Payment failed. Please try again.');
+            }
+        })
+        .catch(function(err) {
+            showMessage('Payment processing failed. Please contact support.');
+            console.error(err);
+        });
+    },
+
+    // Called when there's an error
+    onError: function(err) {
+        console.error('PayPal error:', err);
+        showMessage('An error occurred with PayPal. Please try again or contact support.');
+    },
+
+    // Called when user cancels
+    onCancel: function(data) {
+        showMessage('Payment cancelled. You can try again when ready.', 'info');
     }
-});
+}).render('#paypal-button-container');
+
+// Helper function to show messages
+function showMessage(messageText, type = 'error') {
+    const messageContainer = document.getElementById('payment-message');
+    messageContainer.textContent = messageText;
+    messageContainer.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'bg-blue-50', 'text-blue-700');
+    
+    if (type === 'error') {
+        messageContainer.classList.add('bg-red-50', 'text-red-700');
+    } else if (type === 'info') {
+        messageContainer.classList.add('bg-blue-50', 'text-blue-700');
+    }
+    
+    // Scroll to message
+    messageContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 </script>
 {% endblock %}

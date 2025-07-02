@@ -1,0 +1,52 @@
+/* static/css/components/payments.css - Payment-specific styles */
+
+.payment-card {
+    background: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-8);
+    margin-bottom: var(--spacing-6);
+    border: 1px solid var(--gray-200);
+}
+
+.event-summary {
+    background: var(--gray-50);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-6);
+    margin-bottom: var(--spacing-8);
+    border: 1px solid var(--gray-200);
+}
+
+.payment-button {
+    width: 100%;
+    padding: var(--spacing-4);
+    border-radius: var(--radius-md);
+    border: none;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: var(--spacing-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+}
+
+.paypal-button {
+    background-color: #0070ba;
+    color: white;
+}
+
+.paypal-button:hover {
+    background-color: #005ea6;
+}
+
+.card-button {
+    background-color: var(--gray-700);
+    color: white;
+}
+
+.card-button:hover {
+    background-color: var(--gray-800);
+}

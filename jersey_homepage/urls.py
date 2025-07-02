@@ -5,15 +5,17 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from event_management.views import homepage, faq_view
+# from event_management.views import homepage, faq_view  # Comment out for now
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', homepage, name='home'),  # Homepage at root
-    path('faq/', faq_view, name='faq'),  
+   # path('', homepage, name='home'),  # Homepage at root
+    # path('faq/', faq_view, name='faq'),  # Comment out until function exists
     path('auth/', include('authentication.urls')),
     path('booking/', include('booking.urls')),
     path('events/', include('event_management.urls')),
+    path('payments/', include('payments.urls')), 
+    #path('organizer/', include('event_management.organizer_urls')),
 ]
 
 # Debug toolbar

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}PayPal Setup - {{ organizer.company_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Set Up PayPal for Your Events</h1>
+                <p class="text-gray-600">Connect your PayPal account to start accepting payments for tickets.</p>
+            </div>
+        </div>
+
+        <!-- Setup Instructions -->
+        <div class="mt-6 bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Before You Begin</h2>
+                <div class="space-y-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-700">You'll need a PayPal Business account (or upgrade your personal account)</p>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-700">PayPal is available for Jersey businesses</p>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-700">Transaction fees: 2.9% + £0.30 per transaction</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Form -->
+        <div class="mt-6 bg-white shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Connect Your PayPal Account</h2>
+                
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label for="paypal_email" class="block text-sm font-medium text-gray-700">
+                            PayPal Email Address
+                        </label>
+                        <div class="mt-1">
+                            <input type="email" 
+                                   name="paypal_email" 
+                                   id="paypal_email" 
+                                   required
+                                   placeholder="your-business@example.com"
+                                   class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                   value="{{ organizer.paypal_email|default:'' }}">
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">
+                            This should be the email associated with your PayPal Business account.
+                        </p>
+                    </div>
+
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-blue-800">
+                                    Important Note
+                                </h3>
+                                <div class="mt-2 text-sm text-blue-700">
+                                    <p>By connecting PayPal, you agree that:</p>
+                                    <ul class="list-disc list-inside mt-1">
+                                        <li>Payments will go directly to your PayPal account</li>
+                                        <li>You're responsible for PayPal's transaction fees</li>
+                                        <li>You'll handle refunds through PayPal</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <a href="{% url 'event_management:organizer_dashboard' %}" 
+                           class="text-sm text-gray-600 hover:text-gray-900">
+                            ← Back to Dashboard
+                        </a>
+                        <button type="submit" 
+                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Connect PayPal Account
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="mt-6 bg-gray-50 rounded-lg p-6">
+            <h3 class="text-sm font-medium text-gray-900 mb-2">Need a PayPal Business Account?</h3>
+            <p class="text-sm text-gray-600 mb-3">
+                If you don't have a PayPal Business account, you can upgrade your personal account or create a new one.
+            </p>
+            <a href="https://www.paypal.com/uk/business" 
+               target="_blank" 
+               rel="noopener noreferrer"
+               class="text-sm text-blue-600 hover:text-blue-500">
+                Visit PayPal Business →
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Become an Event Organizer{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Become an Event Organizer</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        Join Jersey Homepage as an event organizer and reach thousands of potential attendees.
+                    </p>
+                    
+                    <div class="alert alert-info mb-4">
+                        <h6>Benefits of becoming an organizer:</h6>
+                        <ul class="mb-0">
+                            <li>Create and manage unlimited events</li>
+                            <li>Sell tickets with integrated payment processing</li>
+                            <li>Track sales and attendance</li>
+                            <li>Reach Jersey's event-going community</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            {{ form.company_name.label_tag }}
+                            {{ form.company_name }}
+                            {% if form.company_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.company_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.description.label_tag }}
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.website.label_tag }}
+                            {{ form.website }}
+                            {% if form.website.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.website.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            {{ form.phone_number.label_tag }}
+                            {{ form.phone_number }}
+                            {% if form.phone_number.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.phone_number.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            {{ form.terms_accepted }}
+                            <label class="form-check-label" for="{{ form.terms_accepted.id_for_label }}">
+                                {{ form.terms_accepted.label }}
+                            </label>
+                            {% if form.terms_accepted.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.terms_accepted.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="fas fa-info-circle"></i>
+                                Your application will be reviewed by our team. 
+                                We'll verify your details and activate your organizer account within 1-2 business days.
+                            </small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            Submit Application
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

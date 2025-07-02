@@ -1,26 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .forms import SignUpForm
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from .forms import SignUpForm
 from django.contrib.auth.decorators import login_required
-from .forms import SignUpForm
 from django.contrib.auth.forms import AuthenticationForm
-from .forms import SignUpForm
 from django.contrib import messages
-from .forms import SignUpForm
 from django.core.mail import send_mail
-from .forms import SignUpForm
 from django.template.loader import render_to_string
-from .forms import SignUpForm
 from django.contrib.sites.shortcuts import get_current_site
-from .forms import SignUpForm
 from django.conf import settings
-from .forms import SignUpForm
 from django.views.decorators.http import require_http_methods
-from .forms import SignUpForm
 from django.http import JsonResponse
-from .forms import SignUpForm
-
+from .forms import SignUpForm, OrganizerRegistrationForm  # Add OrganizerRegistrationForm
+from .models import Organizer  # Add this import
+import uuid
 
 User = get_user_model()
 
@@ -33,8 +24,12 @@ def signup_view(request):
         form = SignUpForm(request.POST)
         if form.is_valid():
             user = form.save()
+            
+            # SEND VERIFICATION EMAIL
+            send_verification_email(user, request)
+            
             if form.cleaned_data.get('is_organizer'):
-                messages.success(request, 'Organizer account created successfully! Please check your email to verify your account. You can now login and start creating events.')
+                messages.success(request, 'Organizer account created successfully! Please check your email to verify your account.')
             else:
                 messages.success(request, 'Account created successfully! Please check your email to verify your account.')
             return redirect('authentication:login')
@@ -65,7 +60,12 @@ def login_view(request):
             if user.email_verified:
                 login(request, user)
                 messages.success(request, f'Welcome back, {user.first_name or user.username}!')
-                return redirect('home')
+                
+                # Redirect based on user type
+                if hasattr(user, 'organizer'):
+                    return redirect('event_management:organizer_dashboard')
+                else:
+                    return redirect('home')
             else:
                 messages.error(request, 'Please verify your email before logging in.')
         else:
@@ -85,9 +85,18 @@ def login_view(request):
     return render(request, 'authentication/login.html', {'form': form})
 
 def logout_view(request):
-    logout(request)
-    messages.success(request, 'You have been logged out successfully.')
-    return redirect('event_management:event_list')
+    """Logout user and redirect to login"""
+    if request.user.is_authenticated:
+        username = request.user.first_name or request.user.username
+        
+        # Clear any existing messages before logout
+        storage = messages.get_messages(request)
+        storage.used = True
+        
+        logout(request)
+        messages.success(request, f'You have been logged out successfully.')
+    
+    return redirect('authentication:login')
 
 
 @login_required
@@ -142,37 +151,6 @@ def list_event_landing(request):
         'title': 'List Your Event on Jersey Homepage'
     })
 
-def register(request):
-    if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False  # Deactivate until email confirmed
-            user.save()
-            
-            # Send verification email
-            current_site = get_current_site(request)
-            subject = 'Verify your Jersey Events account'
-            message = render_to_string('authentication/verify_email.html', {
-                'user': user,
-                'domain': current_site.domain,
-                'token': user.email_verification_token,
-            })
-            
-            send_mail(
-                subject,
-                message,
-                'noreply@jerseyevents.com',
-                [user.email],
-                fail_silently=False,
-            )
-            
-            messages.success(request, 'Please check your email to verify your account.')
-            return redirect('login')
-    else:
-        form = UserRegistrationForm()
-    
-    return render(request, 'authentication/register.html', {'form': form})
 
 def verify_email(request, token):
     try:
@@ -180,7 +158,7 @@ def verify_email(request, token):
         
         if users.count() > 1:
             messages.error(request, 'There was an issue with your verification link. Please contact support.')
-            return redirect('home')  # This one doesn't need namespace since it's in main urls
+            return redirect('home')
         
         user = users.first()
         
@@ -196,13 +174,13 @@ def verify_email(request, token):
         else:
             messages.info(request, 'Email already verified.')
         
-        # Use namespace:name format
         return redirect('authentication:login')
         
     except Exception as e:
         print(f"ERROR in verify_email: {str(e)}")
         messages.error(request, 'An error occurred during verification.')
         return redirect('home')
+
 
 def send_verification_email(user, request=None):
     """Send email verification to user"""
@@ -238,3 +216,42 @@ def send_verification_email(user, request=None):
         fail_silently=False,
         html_message=html_message
     )
+
+
+@login_required
+def register_as_organizer(request):
+    """Register current user as an organizer"""
+    
+    # Check if already an organizer
+    try:
+        organizer = request.user.organizer_profile
+        messages.info(request, "You're already registered as an organizer!")
+        return redirect('event_management:organizer_dashboard')
+    except Organizer.DoesNotExist:
+        pass
+    
+    if request.method == 'POST':
+        form = OrganizerRegistrationForm(request.POST)
+        if form.is_valid():
+            organizer = form.save(commit=False)
+            organizer.user = request.user
+            organizer.is_verified = False  # Requires admin verification
+            organizer.save()
+            
+            # Send admin notification
+            messages.success(request, 
+                "Your organizer application has been submitted! "
+                "We'll review it and get back to you within 1-2 business days."
+            )
+            
+            # Optional: Send email to admin
+            # send_admin_notification_email(organizer)
+            
+            return redirect('home')
+    else:
+        form = OrganizerRegistrationForm()
+    
+    context = {
+        'form': form
+    }
+    return render(request, 'authentication/register_organizer.html', context)

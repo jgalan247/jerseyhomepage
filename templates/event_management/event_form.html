@@ -1,0 +1,263 @@
+<!-- templates/event_management/event_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Event - {{ form.instance.title }}{% else %}Create New Event{% endif %}{% endblock %}
+
+{% block extra_css %}
+    <!-- No inline styles needed - using component CSS -->
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="bg-blue-600 text-white px-6 py-4">
+                <h3 class="text-2xl font-bold flex items-center">
+                    <i class="fas fa-calendar-plus mr-2"></i>
+                    {% if form.instance.pk %}Edit Event{% else %}Create New Event{% endif %}
+                </h3>
+            </div>
+            <div class="p-6">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Display non-field errors -->
+                    {% if form.non_field_errors %}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Event Title -->
+                    <div class="mb-6">
+                        <label for="{{ form.title.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Event Title</label>
+                        <input type="text" name="title" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                               placeholder="Event title" 
+                               value="{{ form.title.value|default:'' }}" 
+                               required>
+                        {% if form.title.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.title.errors|first }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-6">
+                        <label for="{{ form.description.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Description</label>
+                        <textarea name="description" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                  rows="5" 
+                                  placeholder="Describe your event in detail..." 
+                                  required>{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.description.errors|first }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Provide a detailed description of your event</p>
+                    </div>
+
+                    <!-- Venue and Address -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.venue.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Venue</label>
+                            <input type="text" name="venue" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                   placeholder="Venue name" 
+                                   value="{{ form.venue.value|default:'' }}" 
+                                   required>
+                            {% if form.venue.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.venue.errors|first }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.address.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Address</label>
+                            <input type="text" name="address" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                   placeholder="Full address" 
+                                   value="{{ form.address.value|default:'' }}" 
+                                   required>
+                            {% if form.address.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.address.errors|first }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Date and Time -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.date.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Start Date & Time</label>
+                            <input type="datetime-local" name="date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                   value="{{ form.date.value|default:'' }}" 
+                                   required>
+                            {% if form.date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.date.errors|first }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.end_date.id_for_label }}" class="block text-gray-700 font-semibold mb-2">End Date & Time</label>
+                            <input type="datetime-local" name="end_date" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                   value="{{ form.end_date.value|default:'' }}">
+                            {% if form.end_date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.end_date.errors|first }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Optional - when your event ends</p>
+                        </div>
+                    </div>
+
+                    <!-- Category and Price -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <label for="{{ form.category.id_for_label }}" class="block text-gray-700 font-semibold mb-2">Category</label>
+                            <select name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">Select a category</option>
+                                {% for choice in form.category.field.choices %}
+                                    <option value="{{ choice.0 }}" {% if form.category.value == choice.0|stringformat:"s" %}selected{% endif %}>{{ choice.1 }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if form.category.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.category.errors|first }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.price.id_for_label }}" class="form-label required block text-gray-700 font-semibold mb-2">Ticket Price (£)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600">£</span>
+                                <input type="number" name="price" 
+                                       class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                       step="0.01" 
+                                       min="0" 
+                                       value="{{ form.price.value|default:'0.00' }}" 
+                                       required>
+                            </div>
+                            {% if form.price.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.price.errors|first }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Capacity -->
+                    <div class="mb-6">
+                        <label for="{{ form.capacity.id_for_label }}" class="block text-gray-700 font-semibold mb-2">Event Capacity</label>
+                        <input type="number" name="capacity" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                               min="1" 
+                               placeholder="100" 
+                               value="{{ form.capacity.value|default:'' }}">
+                        {% if form.capacity.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.capacity.errors|first }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Leave blank for unlimited capacity</p>
+                    </div>
+
+                    <!-- Event Image -->
+                    <div class="mb-6">
+                        <label for="{{ form.image.id_for_label }}" class="block text-gray-700 font-semibold mb-2">Event Image</label>
+                        <input type="file" name="image" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                               accept="image/*">
+                        {% if form.image.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.image.errors|first }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-sm text-gray-500">Upload an event banner/image (optional)</p>
+                        
+                        {% if form.instance.image %}
+                        <div class="mt-3">
+                            <p class="text-sm text-gray-600 mb-2">Current image:</p>
+                            <img src="{{ form.instance.image.url }}" alt="Current event image" class="preview-image">
+                        </div>
+                        {% endif %}
+                        
+                        <div id="image-preview" class="mt-3 hidden">
+                            <p class="text-sm text-gray-600 mb-2">Preview:</p>
+                            <img id="preview-img" src="" alt="Preview" class="preview-image">
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="pet_friendly" 
+                                   id="{{ form.pet_friendly.id_for_label }}" 
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                   {% if form.pet_friendly.value %}checked{% endif %}>
+                            <label for="{{ form.pet_friendly.id_for_label }}" class="ml-2 text-gray-700 flex items-center">
+                                <i class="fas fa-paw mr-1 text-gray-600"></i> Pet-friendly event
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" name="family_friendly" 
+                                   id="{{ form.family_friendly.id_for_label }}" 
+                                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                   {% if form.family_friendly.value %}checked{% endif %}>
+                            <label for="{{ form.family_friendly.id_for_label }}" class="ml-2 text-gray-700 flex items-center">
+                                <i class="fas fa-child mr-1 text-gray-600"></i> Family-friendly event
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Important Notice -->
+                    {% if not form.instance.pk %}
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    <strong>Please note:</strong> Your event will be reviewed by our team before going live. 
+                                    This usually takes 1-2 business days. You'll receive an email once your event is approved.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Action Buttons -->
+                    <div class="border-t pt-6 flex justify-between">
+                        <a href="{% url 'event_management:organizer_dashboard' %}" class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition duration-200 flex items-center">
+                            <i class="fas fa-arrow-left mr-2"></i> Cancel
+                        </a>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition duration-200 flex items-center">
+                            <i class="fas fa-save mr-2"></i> 
+                            {% if form.instance.pk %}Update Event{% else %}Create Event{% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Preview image before upload
+document.querySelector('input[name="image"]')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const preview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+    
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImg.src = e.target.result;
+            preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    } else {
+        preview.classList.add('hidden');
+    }
+});
+
+// Set minimum date for event date field to today
+const dateInput = document.querySelector('input[name="date"]');
+if (dateInput) {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    now.setMinutes(now.getMinutes() - offset);
+    dateInput.min = now.toISOString().slice(0, 16);
+}
+</script>
+{% endblock %}
