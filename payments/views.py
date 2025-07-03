@@ -14,13 +14,15 @@ from decimal import Decimal
 import json
 import logging
 
-from .models import Order, OrderItem, PaymentAttempt, PaymentType, PaymentStatus
+from .models import PaymentAttempt, PaymentType, PaymentStatus
+from booking.models import Order, OrderItem
 try:
     from .paypal_client import PayPalClient, format_amount
 except ImportError:
     # Fallback to alternative implementation  
     from .paypal_client_alternative import PayPalClient, format_amount
-from event_management.models import Event, TicketType, Booking
+from event_management.models import Event, TicketType
+from booking.models import Booking
 
 logger = logging.getLogger(__name__)
 
@@ -322,3 +324,25 @@ class PaymentCancelView(View):
         
         context = {'order': order}
         return render(request, 'payments/payment_cancel.html', context)
+
+@login_required
+def paypal_setup(request):
+    """Setup PayPal for organizer"""
+    if not hasattr(request.user, 'organizer'):
+        messages.error(request, 'Only organizers can set up payments.')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        # Handle PayPal email submission
+        paypal_email = request.POST.get('paypal_email')
+        if paypal_email:
+            # Save PayPal info
+            from authentication.models import Organizer
+            organizer = request.user.organizer
+            organizer.paypal_email = paypal_email
+            organizer.payment_ready = True
+            organizer.save()
+            messages.success(request, 'PayPal setup completed!')
+            return redirect('event_management:organizer_dashboard')
+    
+    return render(request, 'payments/paypal_setup.html')

@@ -4,6 +4,7 @@ from . import views
 app_name = "payments"
 
 urlpatterns = [
+    path('paypal/setup/', views.paypal_setup, name='paypal_setup'),
     # Only the URLs that have working views
     path("tickets/<int:event_id>/", views.TicketPurchaseView.as_view(), name="ticket_purchase"),
     path("listing-fee/<int:event_id>/", views.ListingFeeView.as_view(), name="listing_fee"),

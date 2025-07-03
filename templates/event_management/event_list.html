@@ -23,12 +23,7 @@
                 <input type="text" name="search" value="{{ search_query }}" 
                        placeholder="Search events, venues, or locations..." 
                        class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       {# Uncomment for live search:
-                       hx-get="{% url 'event_management:event_search' %}"
-                       hx-trigger="keyup changed delay:500ms"
-                       hx-target="#events-grid"
-                       hx-indicator="#search-spinner"
-                       #}>
+                       {# HTMX live search disabled for now #}>
                 
                 <!-- Controls group with fixed widths -->
                 <div class="flex flex-wrap sm:flex-nowrap gap-3">
