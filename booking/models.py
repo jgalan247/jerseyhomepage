@@ -13,6 +13,8 @@ from PIL import Image
 import secrets
 import string
 import base64
+from decimal import Decimal
+from payments.platform_fees import calculate_platform_fee as calc_fee
 
 User = get_user_model()
 
@@ -141,6 +143,14 @@ class Order(models.Model):
         }
         return colors.get(self.status, 'secondary')
 
+    def calculate_platform_fee(self):
+        """Calculate platform fee using environment-based tiers"""
+        return calc_fee(self.total_amount)
+    
+    def organizer_payout(self):
+        """Amount organizer receives after platform fee"""
+        return self.total_amount - self.calculate_platform_fee()
+    
     def mark_as_paid(self):
         """Mark order as paid and generate tickets"""
         self.status = 'confirmed'
@@ -157,42 +167,40 @@ class Order(models.Model):
         return self.email
     
     @property
-    def customer_name(self):
-        """Full name of customer"""
-        return f"{self.first_name} {self.last_name}".strip()
-
     def generate_qr_code(self):
-        """Generate QR code for the entire order"""
+        """Generate QR code for this ticket that opens validation URL when scanned"""
+        from django.urls import reverse
+        from django.conf import settings
+
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
             border=5,
         )
-        
-        # Data to encode
-        qr_data = {
-            'order_number': self.order_number,
-            'total_amount': str(self.total_amount),
-            'created_at': self.created_at.isoformat(),
-            'email': self.email,
-        }
-        
-        qr.add_data(str(qr_data))
+
+        # Generate the validation URL
+        validation_path = reverse('booking:validate_ticket', kwargs={'ticket_code': self.ticket_number})
+
+        # Create full URL - make sure this matches your actual domain
+        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+        validation_url = f"{base_url}{validation_path}"
+
+        # IMPORTANT: Add only the URL, not a dictionary
+        qr.add_data(validation_url)
         qr.make(fit=True)
-        
+
         img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convert to base64
+
+        # Convert to base64 string for TextField storage
         buffer = BytesIO()
         img.save(buffer, format='PNG')
         img_str = base64.b64encode(buffer.getvalue()).decode()
-        
+
         self.qr_code = img_str
         self.save()
-        
-        return self.qr_code
 
+        return self.qr_code
 
 class OrderItem(models.Model):
     """Individual ticket type booking in an order"""
@@ -211,12 +219,18 @@ class OrderItem(models.Model):
     
     @property
     def total_price(self):
+        """Calculate total price for this order item"""
         return self.quantity * self.price
-    
+
+    # You can also remove the get_total method since it duplicates total_price
+    def get_total(self):
+        return self.quantity * self.price
+
+    # Keep the subtotal property as an alias
     @property
     def subtotal(self):
         return self.quantity * self.price
-    
+        
     def generate_tickets(self):
         """Generate tickets for this order item"""
         tickets = []
@@ -268,7 +282,10 @@ class Ticket(models.Model):
         return self.order_item.ticket_type
     
     def generate_qr_code(self):
-        """Generate QR code for this ticket"""
+        """Generate QR code for this ticket that mobile devices can scan and open"""
+        from django.urls import reverse
+        from django.conf import settings
+        
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -276,17 +293,15 @@ class Ticket(models.Model):
             border=5,
         )
         
-        # Data to encode in QR code
-        qr_data = {
-            'ticket_number': self.ticket_number,
-            'event_id': self.event.id,
-            'event_title': self.event.title,
-            'event_date': self.event.start_date.isoformat(),
-            'ticket_type': self.ticket_type.name,
-            'order_number': self.order.order_number,
-        }
+        # Generate the validation URL path
+        validation_path = reverse('booking:validate_ticket', kwargs={'ticket_code': self.ticket_number})
         
-        qr.add_data(str(qr_data))
+        # Create full URL that mobile devices can open
+        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+        validation_url = f"{base_url}{validation_path}"
+        
+        # CRITICAL: Add only the clean URL, not a dictionary or JSON
+        qr.add_data(validation_url)
         qr.make(fit=True)
         
         img = qr.make_image(fill_color="black", back_color="white")

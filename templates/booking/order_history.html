@@ -1,55 +1,334 @@
-{% extends "base.html" %}
-{% load humanize %}
+{% extends 'base.html' %}
+{% load static %}
 
-{% block title %}My Orders{% endblock %}
+{% block title %}My Orders - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <h1>My Orders</h1>
-    
-    {% if orders %}
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Order Number</th>
-                        <th>Date</th>
-                        <th>Events</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for order in orders %}
-                    <tr>
-                        <td>{{ order.order_number }}</td>
-                        <td>{{ order.created_at|date:"d M Y H:i" }}</td>
-                        <td>
-                            {% for item in order.items.all %}
-                                {{ item.event.title }} (x{{ item.quantity }})<br>
-                            {% endfor %}
-                        </td>
-                        <td>£{{ order.total_amount|floatformat:2 }}</td>
-                        <td>
-                            <span class="badge bg-{{ order.get_status_color }}">
-                                {{ order.get_status_display }}
-                            </span>
-                        </td>
-                        <td>
-                            <a href="{% url 'booking:order_success' order.order_number %}" class="btn btn-sm btn-primary">View</a>
-                            {% if order.status == 'completed' %}
-                                <a href="{% url 'booking:download_tickets' order.order_number %}" class="btn btn-sm btn-success">Download Tickets</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header Section -->
+    <div class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">My Orders</h1>
+                <p class="text-gray-600">Track and manage your event bookings</p>
+            </div>
+            <div class="hidden sm:flex items-center space-x-3">
+                <div class="flex items-center text-sm text-gray-500">
+                    <i class="fas fa-filter mr-2"></i>
+                    Filter by status
+                </div>
+                <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option>All Orders</option>
+                    <option>Confirmed</option>
+                    <option>Pending</option>
+                    <option>Cancelled</option>
+                </select>
+            </div>
         </div>
+    </div>
+
+    <!-- Orders List -->
+    {% if orders %}
+        <div class="space-y-6">
+            {% for order in orders %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                <div class="p-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                        <!-- Order Info -->
+                        <div class="flex-1">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                                        Order #{{ order.order_number }}
+                                    </h3>
+                                    <div class="flex items-center text-sm text-gray-500 space-x-4">
+                                        <span class="flex items-center">
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            {{ order.created_at|date:"d M Y, H:i" }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <i class="fas fa-pound-sign mr-1"></i>
+                                            £{{ order.total_amount }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mt-3 sm:mt-0">
+                                    {% if order.status == 'confirmed' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1 text-xs"></i>
+                                            Confirmed
+                                        </span>
+                                    {% elif order.status == 'pending' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-clock mr-1 text-xs"></i>
+                                            Pending
+                                        </span>
+                                    {% elif order.status == 'cancelled' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times-circle mr-1 text-xs"></i>
+                                            Cancelled
+                                        </span>
+                                    {% elif order.status == 'refunded' %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-undo mr-1 text-xs"></i>
+                                            Refunded
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                            <i class="fas fa-info-circle mr-1 text-xs"></i>
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Event Details -->
+                            <div class="space-y-3">
+                                {% for item in order.items.all %}
+                                <div class="bg-gray-50 rounded-lg p-4">
+                                    <div class="flex items-start space-x-4">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                {% if 'music' in item.event.title|lower %}
+                                                    <i class="fas fa-music text-blue-600"></i>
+                                                {% elif 'run' in item.event.title|lower %}
+                                                    <i class="fas fa-running text-blue-600"></i>
+                                                {% elif 'food' in item.event.title|lower %}
+                                                    <i class="fas fa-utensils text-blue-600"></i>
+                                                {% elif 'art' in item.event.title|lower %}
+                                                    <i class="fas fa-palette text-blue-600"></i>
+                                                {% else %}
+                                                    <i class="fas fa-calendar text-blue-600"></i>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h4 class="text-base font-medium text-gray-900 mb-1">{{ item.event.title }}</h4>
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-6 text-sm text-gray-600">
+                                                <span class="flex items-center mb-1 sm:mb-0">
+                                                    <i class="fas fa-ticket-alt mr-2 text-gray-400"></i>
+                                                    {{ item.quantity }} ticket{{ item.quantity|pluralize }}
+                                                    {% if item.ticket_type %}
+                                                        ({{ item.ticket_type.name }})
+                                                    {% endif %}
+                                                </span>
+                                                {% if item.event.venue %}
+                                                <span class="flex items-center mb-1 sm:mb-0">
+                                                    <i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>
+                                                    {{ item.event.venue }}
+                                                </span>
+                                                {% endif %}
+                                                <span class="flex items-center">
+                                                    <i class="fas fa-clock mr-2 text-gray-400"></i>
+                                                    {{ item.event.date|date:"d M Y" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-medium text-gray-900">£{{ item.total_price }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                                <a href="{% url 'booking:order_success' order.id %}" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-colors">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    View Details
+                                </a>
+                                
+                                {% if order.status == 'confirmed' %}
+                                    <a href="{% url 'booking:download_tickets' order.order_number %}" class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-200 transition-colors">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Download Tickets
+                                    </a>
+                                    
+                                    <button onclick="showQRCodes('{{ order.id }}')" class="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 focus:ring-4 focus:ring-purple-200 transition-colors">
+                                        <i class="fas fa-qrcode mr-2"></i>
+                                        Show QR Codes
+                                    </button>
+                                {% elif order.status == 'pending' %}
+                                    <button class="inline-flex items-center justify-center px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 focus:ring-4 focus:ring-orange-200 transition-colors">
+                                        <i class="fas fa-credit-card mr-2"></i>
+                                        Complete Payment
+                                    </button>
+                                {% endif %}
+                                
+                                {% if order.status == 'pending' %}
+                                    <button class="inline-flex items-center justify-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 focus:ring-4 focus:ring-red-200 transition-colors">
+                                        <i class="fas fa-times mr-2"></i>
+                                        Cancel Order
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
+            <div class="text-sm text-gray-700">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} orders
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Previous
+                    </a>
+                {% else %}
+                    <button class="px-3 py-1 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg opacity-50 cursor-not-allowed" disabled>
+                        Previous
+                    </button>
+                {% endif %}
+                
+                <span class="px-3 py-1 text-sm bg-blue-600 text-white rounded-lg">{{ page_obj.number }}</span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Next
+                    </a>
+                {% else %}
+                    <button class="px-3 py-1 text-sm text-gray-500 bg-white border border-gray-300 rounded-lg opacity-50 cursor-not-allowed" disabled>
+                        Next
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
     {% else %}
-        <p>You haven't made any orders yet.</p>
-        <a href="{% url 'event_management:event_list' %}" class="btn btn-primary">Browse Events</a>
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-receipt text-gray-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No orders yet</h3>
+            <p class="text-gray-600 mb-6">You haven't made any bookings yet. Start by browsing our events!</p>
+            <a href="{% url 'event_management:event_list' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-calendar mr-2"></i>
+                Browse Events
+            </a>
+        </div>
     {% endif %}
 </div>
+
+<!-- QR Code Modal -->
+<div id="qrModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">Your Tickets</h3>
+            <button onclick="closeQRModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="qrContent" class="text-center">
+            <!-- QR codes will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+function showQRCodes(orderId) {
+    // Show modal immediately
+    document.getElementById('qrModal').classList.remove('hidden');
+    document.getElementById('qrModal').classList.add('flex');
+    
+    // Show loading state
+    document.getElementById('qrContent').innerHTML = `
+        <div class="text-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading your tickets...</p>
+        </div>
+    `;
+    
+    // Fetch QR codes via AJAX
+    fetch(`/booking/orders/${orderId}/qr-codes/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let ticketsHtml = `
+                    <div class="space-y-4">
+                        <p class="text-sm text-gray-600">Scan these QR codes at the event entrance</p>
+                `;
+                
+                data.tickets.forEach((ticket, index) => {
+                    const statusClass = ticket.is_used ? 'bg-red-50 border-red-200' : 'bg-white border-gray-200';
+                    const statusText = ticket.is_used ? `Used ${ticket.used_at}` : 'Valid';
+                    const statusIcon = ticket.is_used ? 'fas fa-times-circle text-red-500' : 'fas fa-check-circle text-green-500';
+                    
+                    ticketsHtml += `
+                        <div class="border rounded-lg p-4 ${statusClass}">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="text-sm font-medium text-gray-900">${ticket.event_title}</div>
+                                <span class="text-xs text-gray-500">
+                                    <i class="${statusIcon} mr-1"></i>
+                                    ${statusText}
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-3">
+                                ${ticket.ticket_type} • ${ticket.ticket_number}
+                            </div>
+                            <div class="flex justify-center">
+                                ${ticket.qr_code ? 
+                                    `<img src="data:image/png;base64,${ticket.qr_code}" 
+                                          alt="QR Code" 
+                                          class="w-32 h-32 border rounded-lg">` 
+                                    : 
+                                    `<div class="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-qrcode text-4xl text-gray-400"></i>
+                                        <div class="text-xs text-gray-500 mt-2">No QR Code</div>
+                                    </div>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                ticketsHtml += '</div>';
+                document.getElementById('qrContent').innerHTML = ticketsHtml;
+            } else {
+                document.getElementById('qrContent').innerHTML = `
+                    <div class="text-center py-8">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-4"></i>
+                        <p class="text-red-600">Failed to load QR codes. Please try again.</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching QR codes:', error);
+            document.getElementById('qrContent').innerHTML = `
+                <div class="text-center py-8">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-2xl mb-4"></i>
+                    <p class="text-red-600">Error loading QR codes. Please check your connection.</p>
+                </div>
+            `;
+        });
+}
+
+function closeQRModal() {
+    document.getElementById('qrModal').classList.add('hidden');
+    document.getElementById('qrModal').classList.remove('flex');
+}
+
+// Close modal when clicking outside
+document.getElementById('qrModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeQRModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeQRModal();
+    }
+});
+</script>
 {% endblock %}
