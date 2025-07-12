@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views  # Import from authentication app, not events!
+from . import paypal_views
 
 app_name = 'authentication'
 
@@ -10,11 +11,12 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
-    path('register/', views.register, name='register'),
+    #path('register/', views.register, name='register'),
     path('verify-email/<uuid:token>/', views.verify_email, name='verify_email'),
     # Email verification
     # path('verify-email/<uidb64>/<token>/', views.verify_email_view, name='verify_email'),
     path('resend-verification/', views.resend_verification_view, name='resend_verification'),
+    path('become-organizer/', views.register_as_organizer, name='register_as_organizer'),
     
     # Password reset
     path('password-reset/', 
@@ -44,4 +46,14 @@ urlpatterns = [
     # Legal pages
     path('privacy-policy/', views.privacy_policy, name='privacy_policy'),
     path('terms-conditions/', views.terms_conditions, name='terms_conditions'),
+
+    # PayPal Commerce Platform URLs
+    path('paypal/connect/', paypal_views.paypal_connect_onboarding, name='paypal_connect_onboarding'),
+    
+    path('paypal/connect/return/', paypal_views.paypal_connect_return, name='paypal_connect_return'),
+    
+    path('paypal/connect/refresh/', paypal_views.paypal_connect_refresh,  name='paypal_connect_refresh'),
+    
+    path('paypal/webhook/', paypal_views.paypal_webhook,  name='paypal_webhook'),
+
 ]

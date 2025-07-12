@@ -4,7 +4,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.utils import timezone
-from event_management.models import Event
+from event_management.models import Event, TicketType  # Added TicketType import
 import uuid
 import qrcode
 from io import BytesIO
@@ -13,6 +13,8 @@ from PIL import Image
 import secrets
 import string
 import base64
+from decimal import Decimal
+from payments.platform_fees import calculate_platform_fee as calc_fee
 
 User = get_user_model()
 
@@ -32,7 +34,7 @@ class Cart(models.Model):
     
     @property
     def total_price(self):
-        return sum(item.total_price for item in self.items.all())
+        return sum(item.subtotal for item in self.items.all())
     
     @property
     def total_items(self):
@@ -47,37 +49,27 @@ class CartItem(models.Model):
     """Individual items in a cart"""
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    ticket_type = models.ForeignKey(TicketType, on_delete=models.CASCADE)  # NEW: Added TicketType
     quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
-    price_at_time = models.DecimalField(max_digits=10, decimal_places=2)
     added_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         db_table = 'booking_cart_item'
-        unique_together = ['cart', 'event']
+        unique_together = ['cart', 'ticket_type']  # Changed from event to ticket_type
         ordering = ['-added_at']
     
     def __str__(self):
-        return f"{self.quantity}x {self.event.title}"
+        return f"{self.quantity}x {self.ticket_type.name} for {self.event.title}"
+    
+    @property
+    def subtotal(self):
+        """Calculate the subtotal for this cart item"""
+        return self.quantity * self.ticket_type.price
     
     @property
     def total_price(self):
-        return self.quantity * self.price_at_time
-    
-    @property
-    def subtotal(self):
-        """Calculate the subtotal for this cart item"""
-        return self.quantity * self.price
-    
-    # Alternative if price comes from event
-    @property
-    def subtotal(self):
-        """Calculate the subtotal for this cart item"""
-        return self.quantity * self.event.price
-
-    def save(self, *args, **kwargs):
-        if not self.price_at_time:
-            self.price_at_time = self.event.price
-        super().save(*args, **kwargs)
+        """Alias for subtotal for compatibility"""
+        return self.subtotal
 
 
 class Order(models.Model):
@@ -93,8 +85,8 @@ class Order(models.Model):
     order_number = models.CharField(max_length=32, unique=True, editable=False)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     email = models.EmailField()  # For guest checkouts
-    stripe_session_id = models.CharField(max_length=255, blank=True)
     qr_code = models.TextField(blank=True, null=True)
+    
     # Billing information
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -104,9 +96,10 @@ class Order(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Stripe payment info
-    stripe_payment_intent = models.CharField(max_length=255, blank=True)
-    stripe_checkout_session = models.CharField(max_length=255, blank=True)
+    # PayPal payment info
+    paypal_order_id = models.CharField(max_length=255, blank=True)
+    paypal_capture_id = models.CharField(max_length=255, blank=True)
+    paypal_payer_id = models.CharField(max_length=255, blank=True)
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,13 +137,20 @@ class Order(models.Model):
         colors = {
             'pending': 'warning',
             'processing': 'info',
-            'completed': 'success',
-            'failed': 'danger',
-            'cancelled': 'secondary',
+            'confirmed': 'success',
+            'cancelled': 'danger',
             'refunded': 'dark'
         }
         return colors.get(self.status, 'secondary')
 
+    def calculate_platform_fee(self):
+        """Calculate platform fee using environment-based tiers"""
+        return calc_fee(self.total_amount)
+    
+    def organizer_payout(self):
+        """Amount organizer receives after platform fee"""
+        return self.total_amount - self.calculate_platform_fee()
+    
     def mark_as_paid(self):
         """Mark order as paid and generate tickets"""
         self.status = 'confirmed'
@@ -167,65 +167,70 @@ class Order(models.Model):
         return self.email
     
     @property
-    def customer_name(self):
-        """Full name of customer"""
-        return f"{self.first_name} {self.last_name}".strip()
-
     def generate_qr_code(self):
-        """Generate QR code for the entire order"""
+        """Generate QR code for this ticket that opens validation URL when scanned"""
+        from django.urls import reverse
+        from django.conf import settings
+
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
             box_size=10,
             border=5,
         )
-        
-        # Data to encode
-        qr_data = {
-            'order_number': self.order_number,
-            'total_amount': str(self.total_amount),
-            'created_at': self.created_at.isoformat(),
-            'email': self.email,
-        }
-        
-        qr.add_data(str(qr_data))
+
+        # Generate the validation URL
+        validation_path = reverse('booking:validate_ticket', kwargs={'ticket_code': self.ticket_number})
+
+        # Create full URL - make sure this matches your actual domain
+        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+        validation_url = f"{base_url}{validation_path}"
+
+        # IMPORTANT: Add only the URL, not a dictionary
+        qr.add_data(validation_url)
         qr.make(fit=True)
-        
+
         img = qr.make_image(fill_color="black", back_color="white")
-        
-        # Convert to base64
+
+        # Convert to base64 string for TextField storage
         buffer = BytesIO()
         img.save(buffer, format='PNG')
         img_str = base64.b64encode(buffer.getvalue()).decode()
-        
+
         self.qr_code = img_str
         self.save()
-        
+
         return self.qr_code
 
-
 class OrderItem(models.Model):
-    """Individual event booking in an order"""
+    """Individual ticket type booking in an order"""
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    ticket_type = models.ForeignKey(TicketType, on_delete=models.CASCADE, related_name='booking_orderitems')  # NEW: Added TicketType
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2)  # Price at time of purchase
     
     class Meta:
         db_table = 'booking_order_item'
-        unique_together = ['order', 'event']
+        unique_together = ['order', 'ticket_type']  # Changed from event to ticket_type
     
     def __str__(self):
-        return f"{self.quantity}x {self.event.title}"
+        return f"{self.quantity}x {self.ticket_type.name} for {self.event.title}"
     
     @property
     def total_price(self):
+        """Calculate total price for this order item"""
         return self.quantity * self.price
-    
+
+    # You can also remove the get_total method since it duplicates total_price
+    def get_total(self):
+        return self.quantity * self.price
+
+    # Keep the subtotal property as an alias
     @property
     def subtotal(self):
         return self.quantity * self.price
-    
+        
     def generate_tickets(self):
         """Generate tickets for this order item"""
         tickets = []
@@ -236,11 +241,16 @@ class OrderItem(models.Model):
             )
             ticket.generate_qr_code()
             tickets.append(ticket)
+        
+        # Update quantity sold on ticket type
+        self.ticket_type.quantity_sold += self.quantity
+        self.ticket_type.save()
+        
         return tickets
     
     def generate_ticket_number(self):
         """Generate unique ticket number"""
-        return f"TKT{self.order.order_number}-{uuid.uuid4().hex[:8].upper()}"
+        return f"TKT{self.order.order_number}-{self.ticket_type.id}-{uuid.uuid4().hex[:8].upper()}"
 
 
 class Ticket(models.Model):
@@ -266,8 +276,16 @@ class Ticket(models.Model):
     def order(self):
         return self.order_item.order
     
-    def generate_qr_code(self):
+    @property
+    def ticket_type(self):
+        """Get the ticket type from order item"""
+        return self.order_item.ticket_type
     
+    def generate_qr_code(self):
+        """Generate QR code for this ticket that mobile devices can scan and open"""
+        from django.urls import reverse
+        from django.conf import settings
+        
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -275,16 +293,15 @@ class Ticket(models.Model):
             border=5,
         )
         
-        # Data to encode in QR code
-        qr_data = {
-            'ticket_number': self.ticket_number,
-            'event_id': self.event.id,
-            'event_title': self.event.title,
-            'event_date': self.event.date.isoformat(),
-            'order_number': self.order.order_number,
-        }
+        # Generate the validation URL path
+        validation_path = reverse('booking:validate_ticket', kwargs={'ticket_code': self.ticket_number})
         
-        qr.add_data(str(qr_data))
+        # Create full URL that mobile devices can open
+        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+        validation_url = f"{base_url}{validation_path}"
+        
+        # CRITICAL: Add only the clean URL, not a dictionary or JSON
+        qr.add_data(validation_url)
         qr.make(fit=True)
         
         img = qr.make_image(fill_color="black", back_color="white")
@@ -315,3 +332,22 @@ class GuestCheckout(models.Model):
     
     class Meta:
         db_table = 'booking_guest_checkout'
+
+
+class Booking(models.Model):
+    event = models.ForeignKey('event_management.Event', on_delete=models.CASCADE, related_name='booking_bookings')
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, related_name='booking_user_bookings')
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20, blank=True)
+    paypal_order_id = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, default='pending')
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class BookingTicket(models.Model):
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
+    ticket_type = models.ForeignKey('event_management.TicketType', on_delete=models.CASCADE)
+    quantity = models.IntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)

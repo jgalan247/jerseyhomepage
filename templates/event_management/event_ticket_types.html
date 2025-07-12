@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+    <!-- Load progress bar and button components -->
+    <link rel="stylesheet" href="{% static 'css/components/progress.css' %}">
+    <link rel="stylesheet" href="{% static 'css/components/buttons.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-custom">
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress-step">
+            <div class="step-circle completed">✓</div>
+            <span class="step-label">Basic Info</span>
+        </div>
+        <div class="progress-step">
+            <div class="step-circle active">2</div>
+            <span class="step-label">Ticket Types</span>
+        </div>
+        <div class="progress-step">
+            <div class="step-circle">3</div>
+            <span class="step-label">Review & Pay</span>
+        </div>
+    </div>
+    
+    <h1 class="page-title">Configure Ticket Types</h1>
+    
+    <!-- Event Summary -->
+    <div class="event-summary">
+        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">{{ event.title }}</h3>
+        <p style="color: #6b7280; font-size: 0.875rem; margin: 0;">
+            {{ event.venue }} • {{ event.date|date:"d M Y" }} • Capacity: {{ event.capacity }}
+        </p>
+    </div>
+    
+    <form method="post" id="ticket-form">
+        {% csrf_token %}
+        
+        <div class="card">
+            <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">Ticket Types</h2>
+            
+            <div id="ticket-types-container">
+                {% if existing_tickets %}
+                    {% for ticket in existing_tickets %}
+                    <div class="ticket-type-row">
+                        <div class="ticket-grid">
+                            <input type="text" name="ticket_name_{{ forloop.counter0 }}" 
+                                   class="form-control" placeholder="Ticket name (e.g., General Admission)"
+                                   value="{{ ticket.name }}" required>
+                            <input type="number" name="ticket_price_{{ forloop.counter0 }}" 
+                                   class="form-control" placeholder="Price" step="0.01" min="0"
+                                   value="{{ ticket.price }}" required>
+                            <input type="number" name="ticket_quantity_{{ forloop.counter0 }}" 
+                                   class="form-control" placeholder="Quantity" min="1"
+                                   value="{{ ticket.quantity_available }}" required>
+                            <button type="button" class="btn btn-danger" onclick="removeTicketRow(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- Default ticket type -->
+                    <div class="ticket-type-row">
+                        <div class="ticket-grid">
+                            <input type="text" name="ticket_name_0" class="form-control" 
+                                   placeholder="Ticket name (e.g., General Admission)" required>
+                            <input type="number" name="ticket_price_0" class="form-control" 
+                                   placeholder="Price" step="0.01" min="0" value="{{ event.price }}" required>
+                            <input type="number" name="ticket_quantity_0" class="form-control" 
+                                   placeholder="Quantity" min="1" value="{{ event.capacity }}" required>
+                            <button type="button" class="btn btn-danger" onclick="removeTicketRow(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <button type="button" class="btn btn-add mt-4" onclick="addTicketRow()">
+                <i class="fas fa-plus"></i> Add Another Ticket Type
+            </button>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem;">
+            <a href="{% url 'event_management:create_event' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Continue to Payment <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+let ticketCount = {{ existing_tickets.count|default:1 }};
+
+function addTicketRow() {
+    const container = document.getElementById('ticket-types-container');
+    const newRow = document.createElement('div');
+    newRow.className = 'ticket-type-row';
+    newRow.innerHTML = `
+        <div class="ticket-grid">
+            <input type="text" name="ticket_name_${ticketCount}" class="form-control" 
+                   placeholder="Ticket name (e.g., VIP)" required>
+            <input type="number" name="ticket_price_${ticketCount}" class="form-control" 
+                   placeholder="Price" step="0.01" min="0" required>
+            <input type="number" name="ticket_quantity_${ticketCount}" class="form-control" 
+                   placeholder="Quantity" min="1" required>
+            <button type="button" class="btn btn-danger" onclick="removeTicketRow(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(newRow);
+    ticketCount++;
+}
+
+function removeTicketRow(button) {
+    const rows = document.querySelectorAll('.ticket-type-row');
+    if (rows.length > 1) {
+        button.closest('.ticket-type-row').remove();
+    } else {
+        alert('You must have at least one ticket type.');
+    }
+}
+</script>
+{% endblock %}

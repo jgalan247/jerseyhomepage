@@ -18,43 +18,43 @@
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
         <form method="get" action="{% url 'event_management:event_list' %}" id="event-filter-form" class="space-y-4">
             <!-- Basic Search with HTMX Live Search (Optional - uncomment to enable) -->
-            <div class="flex gap-4">
+            <div class="flex flex-col lg:flex-row gap-3">
+                <!-- Search input takes most space on large screens -->
                 <input type="text" name="search" value="{{ search_query }}" 
                        placeholder="Search events, venues, or locations..." 
                        class="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       {# Uncomment for live search:
-                       hx-get="{% url 'event_management:event_search' %}"
-                       hx-trigger="keyup changed delay:500ms"
-                       hx-target="#events-grid"
-                       hx-indicator="#search-spinner"
-                       #}>
+                       {# HTMX live search disabled for now #}>
                 
-                <!-- Category Quick Filter -->
-                <select name="category" class="px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">All Categories</option>
-                    {% for category in categories %}
-                        <option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>
-                            {{ category.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-                
-                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                    <i class="fas fa-search mr-2"></i>Search
-                    <span id="search-spinner" class="htmx-indicator ml-2">
-                        <i class="fas fa-spinner fa-spin"></i>
-                    </span>
-                </button>
-                
-                <!-- Toggle Advanced Search -->
-                <button type="button" 
-                        onclick="toggleAdvancedSearch()"
-                        class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-                    </svg>
-                    <span id="advanced-toggle-text">{% if show_advanced %}Hide{% else %}Show{% endif %} Filters</span>
-                </button>
+                <!-- Controls group with fixed widths -->
+                <div class="flex flex-wrap sm:flex-nowrap gap-3">
+                    <!-- Category Quick Filter - fixed width -->
+                    <select name="category" class="w-full sm:w-44 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                            <option value="{{ category.slug }}" {% if selected_category == category.slug %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    
+                    <!-- Search button -->
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
+                        <i class="fas fa-search mr-2"></i>Search
+                        <span id="search-spinner" class="htmx-indicator ml-2">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                    </button>
+                    
+                    <!-- Toggle Advanced Search -->
+                    <button type="button" 
+                            onclick="toggleAdvancedSearch()"
+                            class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center whitespace-nowrap">
+                        <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        <span id="advanced-toggle-text">{% if show_advanced %}Hide{% else %}Show{% endif %} Filters</span>
+                    </button>
+                </div>
             </div>
             
             <!-- Quick Filters - Now with checkboxes for multiple selection -->
@@ -129,38 +129,42 @@
                     <!-- Date From -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                        <input type="date" name="date_from" value="{{ current_filters.date_from }}"
+                        <input type="date" name="date_from" 
+                               value="{% if current_filters.date_from %}{{ current_filters.date_from }}{% endif %}"
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    
+
                     <!-- Date To -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                        <input type="date" name="date_to" value="{{ current_filters.date_to }}"
+                        <input type="date" name="date_to" 
+                               value="{% if current_filters.date_to %}{{ current_filters.date_to }}{% endif %}"
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    
+
                     <!-- Min Price -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Min Price (£)</label>
-                        <input type="number" name="price_min" value="{{ current_filters.price_min }}"
+                        <input type="number" name="price_min" 
+                               value="{% if current_filters.price_min %}{{ current_filters.price_min }}{% endif %}"
                                min="0" step="0.01"
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    
+
                     <!-- Max Price -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Max Price (£)</label>
-                        <input type="number" name="price_max" value="{{ current_filters.price_max }}"
+                        <input type="number" name="price_max" 
+                               value="{% if current_filters.price_max %}{{ current_filters.price_max }}{% endif %}"
                                min="0" step="0.01"
                                class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
                 
-                <!-- Sort Options -->
+                <!-- Sort Options - Fixed width -->
                 <div class="flex items-center gap-4">
                     <label class="text-sm font-medium text-gray-700">Sort by:</label>
-                    <select name="sort" class="px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="sort" class="w-44 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="-date" {% if current_filters.sort == '-date' %}selected{% endif %}>Date (Newest)</option>
                         <option value="date" {% if current_filters.sort == 'date' %}selected{% endif %}>Date (Oldest)</option>
                         <option value="price" {% if current_filters.sort == 'price' %}selected{% endif %}>Price (Low to High)</option>
@@ -178,23 +182,6 @@
                 </div>
             </div>
         </form>
-        <script>
-function toggleAdvancedSearch() {
-    const advancedFilters = document.getElementById('advanced-filters');
-    const toggleText = document.getElementById('advanced-toggle-text');
-    const showAdvancedInput = document.getElementById('show_advanced');
-    
-    if (advancedFilters.classList.contains('hidden')) {
-        advancedFilters.classList.remove('hidden');
-        toggleText.textContent = 'Hide Filters';
-        showAdvancedInput.value = 'true';
-    } else {
-        advancedFilters.classList.add('hidden');
-        toggleText.textContent = 'Show Filters';
-        showAdvancedInput.value = 'false';
-    }
-}
-</script>
     </div>
 
     <!-- Results Summary -->

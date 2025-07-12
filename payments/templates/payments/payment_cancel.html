@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Payment Cancelled{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center py-12">
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div class="mb-6">
+                <div class="bg-gradient-to-r from-yellow-400 to-orange-400 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Payment Cancelled</h1>
+                <p class="text-gray-600">You have cancelled the payment process.</p>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="bg-gray-50 rounded-xl p-6 mb-6 text-left">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Cancelled Order</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Order ID:</span>
+                        <span class="font-mono text-sm">{{ order.id }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Event:</span>
+                        <span class="font-semibold">{{ order.event.title }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Payment Type:</span>
+                        <span class="capitalize">{{ order.get_payment_type_display }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Amount:</span>
+                        <span class="font-bold text-lg">${{ order.total_amount }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Information Box -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start space-x-3">
+                    <svg class="w-6 h-6 text-blue-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="text-left">
+                        <h4 class="font-semibold text-gray-800 mb-1">No charges were made</h4>
+                        <p class="text-gray-600 text-sm">
+                            Since you cancelled the payment, no money has been charged to your account. 
+                            You can restart the process anytime.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">Want to continue?</h4>
+                
+                {% if order.is_ticket_purchase %}
+                <div class="text-left space-y-3">
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Secure payment processing
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Instant ticket confirmation
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Email confirmation and receipts
+                    </div>
+                </div>
+                
+                {% elif order.is_listing_fee %}
+                <div class="text-left space-y-3">
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Immediate event promotion activation
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Priority placement for {{ order.listing_duration_days }} days
+                    </div>
+                    <div class="flex items-center text-gray-600">
+                        <svg class="w-4 h-4 mr-2 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Enhanced visibility and features
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                {% if order.is_ticket_purchase %}
+                <a href="{% url 'payments:ticket_purchase' event_id=order.event.id %}" 
+                   class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
+                    Complete Purchase
+                </a>
+                
+                <a href="{% url 'events:event_detail' event_id=order.event.id %}" 
+                   class="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    View Event
+                </a>
+                
+                {% elif order.is_listing_fee %}
+                <a href="{% url 'payments:listing_fee' event_id=order.event.id %}" 
+                   class="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
+                    Complete Promotion
+                </a>
+                
+                <a href="{% url 'events:organizer_dashboard' %}" 
+                   class="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                    Dashboard
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Help Section -->
+            <div class="mt-8 pt-6 border-t border-gray-200">
+                <p class="text-gray-600 text-sm mb-4">
+                    Need help or have questions about your purchase?
+                </p>
+                <a href="{% url 'contact' %}" 
+                   class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                    Contact our support team →
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

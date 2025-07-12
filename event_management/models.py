@@ -7,9 +7,11 @@ from django.contrib.postgres.indexes import GinIndex
 import urllib.parse
 from datetime import timedelta
 from urllib.parse import quote_plus
+from decimal import Decimal
+from .pricing import PricingService
 
 # Don't call get_user_model() at module level
-# User = get_user_model()  # Remove this line
+User = get_user_model()  # Remove this line
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -24,7 +26,18 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+class PublicEventManager(models.Manager):
+    """Manager that returns only approved and active events for public view"""
+    def get_queryset(self):
+        return super().get_queryset().filter(
+            is_approved=True,
+            is_active=True,
+            date__gte=timezone.now()  # Only future events
+        )
+
+
 class Event(models.Model):
+    # Existing fields
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True, max_length=200) 
     description = models.TextField()
@@ -38,37 +51,200 @@ class Event(models.Model):
     capacity = models.IntegerField(default=100)
     tickets_sold = models.IntegerField(default=0)
     organizer = models.ForeignKey('authentication.Organizer', on_delete=models.CASCADE, related_name='events')
+    
+    # Status flags
     is_featured = models.BooleanField(default=False)
     is_premium = models.BooleanField(default=False) 
     is_active = models.BooleanField(default=True)
     pet_friendly = models.BooleanField(default=False)
     family_friendly = models.BooleanField(default=True)
     has_offers = models.BooleanField(default=False)
+    
+        # Add these new fields
+    platform_plan = models.ForeignKey('PlatformPlan', on_delete=models.PROTECT, null=True, blank=True)
+    plan_paid = models.BooleanField(default=False)
+    #listing_fee_paid = models.BooleanField(default=False)
+    #listing_fee_amount = models.DecimalField(max_digits=6, decimal_places=2, default=25.00)
+    paypal_order_id = models.CharField(max_length=255, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    
+    listing_fee = models.DecimalField(
+    max_digits=10, 
+    decimal_places=2, 
+    default=Decimal('0'),
+    help_text="Platform listing fee for this event"
+    )
+    listing_tier = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Pricing tier applied"
+    )
+    listing_paid = models.BooleanField(
+        default=False,
+        help_text="Has the listing fee been paid?"
+    )
+    listing_paid_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="When the listing fee was paid"
+    )
+    
+    # Event approval (add these)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('draft', 'Draft'),
+            ('pending_payment', 'Pending Payment'),
+            ('pending_review', 'Pending Review'),
+            ('approved', 'Approved'),
+            ('published', 'Published'),
+            ('rejected', 'Rejected'),
+            ('completed', 'Completed'),
+        ],
+        default='draft',
+        help_text="Event status in the system"
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="Notes from admin (rejection reasons, etc.)"
+    )
+    reviewed_by = models.ForeignKey(
+        'authentication.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_events',
+        help_text="Admin who reviewed this event"
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the event was reviewed"
+    )
+   
+    # Approval fields
+    is_approved = models.BooleanField(
+        default=False,
+        help_text="Event must be approved by admin before appearing publicly"
+    )
+    approved_by = models.ForeignKey(
+        User, 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL,
+        related_name='approved_events'
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     search_vector = SearchVectorField(null=True)
+    
+    # Managers
+    objects = models.Manager()  # Default manager - returns all events
+    public = PublicEventManager()  # Only approved events for public
     
     class Meta:
         ordering = ['date']
         indexes = [
             GinIndex(fields=['search_vector']),
         ]
+        permissions = [
+            ("can_approve_events", "Can approve events"),
+        ]
     
     def __str__(self):
         return self.title
+    
+    def approve(self, user):
+        """Approve the event"""
+        self.is_approved = True
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.save()
+    
+    def reject(self):
+        """Reject/unapprove the event"""
+        self.is_approved = False
+        self.approved_by = None
+        self.approved_at = None
+        self.save()
+    
+    # Add this method to calculate pricing when saving
+    def calculate_listing_fee(self):
+        """Calculate the listing fee for this event"""
+        from .pricing import PricingService
+        
+        # Pass ticket_price for percentage-based calculation
+        fee, tier_name = PricingService.calculate_event_fee(
+            capacity=self.capacity,
+            is_free_event=(self.price == 0 or self.price is None),
+            ticket_price=self.price  # Add ticket price for percentage calculation
+        )
+    
+        self.listing_fee = fee
+        self.listing_tier = tier_name
+        return fee, tier_name
+        
+    @property
+    def status_display(self):
+        """Human-readable status"""
+        if not self.is_active:
+            return "Inactive"
+        elif not self.is_approved:
+            return "Pending Approval"
+        elif self.has_passed:
+            return "Past Event"
+        elif self.is_sold_out:
+            return "Sold Out"
+        else:
+            return "Active"
+    
+    @property
+    def can_be_booked(self):
+        """Check if event can accept bookings"""
+        return (
+            self.is_approved and 
+            self.is_active and 
+            not self.has_passed and 
+            not self.is_sold_out
+        )
+    @property
+    def total_tickets_configured(self):
+        """Total tickets across all ticket types"""
+        return self.ticket_types.aggregate(total=models.Sum('quantity_available'))['total'] or 0
+    
+    @property
+    def total_tickets_sold(self):
+        """Total tickets sold across all types"""
+        return self.ticket_types.aggregate(total=models.Sum('quantity_sold'))['total'] or 0
+    
+    @property
+    def is_published(self):
+        """Event is only visible if plan is paid"""
+        return self.plan_paid and self.status == 'approved'
     
     def get_absolute_url(self):
         return reverse('event_management:event_detail', kwargs={'slug': self.slug})
     
     def save(self, *args, **kwargs):
-        """Override save to update search vector"""
+        # Generate slug if not present
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.title)
+            if not self.slug:  # If title doesn't produce a valid slug
+                self.slug = f"event-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+        
         super().save(*args, **kwargs)
+        
+        # Update search vector
         if self.pk:  # Only update if the object has been saved
             Event.objects.filter(pk=self.pk).update(
                 search_vector=SearchVector('title', weight='A') + 
-                             SearchVector('description', weight='B') +
-                             SearchVector('venue', weight='C') +
-                             SearchVector('address', weight='D')
+                            SearchVector('description', weight='B') +
+                            SearchVector('venue', weight='C') +
+                            SearchVector('address', weight='D')
             )
     
     @property
@@ -171,4 +347,96 @@ class EventImage(models.Model):
     
     class Meta:
         ordering = ['order']
+
+class PlatformPlan(models.Model):
+    """Platform subscription plans for organizers"""
+    PLAN_TYPE_CHOICES = [
+        ('per_event', 'Per Event'),
+        ('monthly', 'Monthly Subscription'),
+        ('annual', 'Annual Subscription'),
+    ]
+    
+    name = models.CharField(max_length=50)  # "Starter", "Growth", "Pro"
+    slug = models.SlugField(unique=True)
+    max_tickets = models.IntegerField(help_text="-1 for unlimited")
+    
+    # Pricing options
+    price_per_event = models.DecimalField(max_digits=6, decimal_places=2)
+    price_per_month = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    price_per_year = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    
+    # Features
+    features = models.JSONField(default=dict)
+    """
+    Example features:
+    {
+        "analytics": "basic|advanced",
+        "support": "email|priority",
+        "custom_branding": true|false,
+        "featured_listing": true|false,
+        "email_attendees": true|false,
+        "max_ticket_types": 3|10|unlimited
+    }
+    """
+    
+    is_active = models.BooleanField(default=True)
+    display_order = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['display_order', 'price_per_event']
+    
+    def __str__(self):
+        return f"{self.name} - £{self.price_per_event}/event"
+
+
+class TicketType(models.Model):
+    """Different ticket tiers for an event"""
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='ticket_types')
+    name = models.CharField(max_length=100)  # "Early Bird", "General", "VIP"
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=8, decimal_places=2)
+    
+    # Availability
+    quantity_available = models.IntegerField()
+    quantity_sold = models.IntegerField(default=0)
+    
+    # Sale window
+    sale_starts = models.DateTimeField(default=timezone.now)
+    sale_ends = models.DateTimeField()
+    
+    # Display
+    display_order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['display_order', 'price']
+    
+    def __str__(self):
+        return f"{self.event.title} - {self.name} (£{self.price})"
+    
+    @property
+    def is_available(self):
+        """Check if tickets can be purchased"""
+        now = timezone.now()
+        return (
+            self.is_active and
+            self.sale_starts <= now <= self.sale_ends and
+            self.quantity_sold < self.quantity_available
+        )
+    
+    @property
+    def remaining_quantity(self):
+        return self.quantity_available - self.quantity_sold
+
+
+class EventPlanPayment(models.Model):
+    """Track platform fee payments for events"""
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='plan_payment')
+    plan = models.ForeignKey(PlatformPlan, on_delete=models.PROTECT)
+    amount_paid = models.DecimalField(max_digits=6, decimal_places=2)
+    paypal_order_id = models.CharField(max_length=255)
+    paid_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.event.title} - {self.plan.name} - £{self.amount_paid}"
 

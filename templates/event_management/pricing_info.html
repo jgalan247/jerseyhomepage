@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Event Pricing - Jersey Homepage{% endblock %}
+
+{% block extra_css %}
+    <!-- Load pricing-specific CSS -->
+    <link rel="stylesheet" href="{% static 'css/pages/pricing.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="pricing-hero">
+    <div class="container">
+        <div class="text-center">
+            <h1 class="display-4 fw-bold mb-3">Event Listing Pricing</h1>
+            <p class="lead mb-0">Simple, transparent pricing for event organizers in Jersey</p>
+        </div>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div class="container">
+    <div class="info-box">
+        <div class="d-flex align-items-start">
+            <i class="fas fa-info-circle text-primary me-3" style="font-size: 1.5rem;"></i>
+            <div>
+                <h5 class="mb-2">How our pricing works</h5>
+                <p class="mb-0">Pay a percentage of your potential ticket revenue as a one-time listing fee. <strong>You keep 100% of actual ticket sales!</strong> All payments from attendees go directly to you. Larger events get volume discounts.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pricing Section -->
+<section class="pricing-section">
+    <div class="container">
+        <div class="pricing-grid">
+            <!-- Free Tier -->
+            <div class="pricing-card">
+                <div class="card-header free">
+                    <h3>Free Events</h3>
+                </div>
+                <div class="price-section">
+                    <p class="price">FREE</p>
+                    <p class="price-label">No listing fee</p>
+                </div>
+                <p class="card-description">Perfect for community events</p>
+                <div class="features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Any capacity</li>
+                        <li><i class="fas fa-check-circle"></i> Free admission only</li>
+                        <li><i class="fas fa-check-circle"></i> Full platform features</li>
+                        <li><i class="fas fa-check-circle"></i> Email support</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Small Tier -->
+            <div class="pricing-card">
+                <div class="card-header basic">
+                    <h3>Small Events</h3>
+                </div>
+                <div class="price-section">
+                    <p class="price">4%</p>
+                    <p class="price-label">of potential revenue</p>
+                </div>
+                <p class="card-description">For intimate gatherings</p>
+                <div class="features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> Up to 50 attendees</li>
+                        <li><i class="fas fa-check-circle"></i> Any ticket price</li>
+                        <li><i class="fas fa-check-circle"></i> Standard listing</li>
+                        <li><i class="fas fa-check-circle"></i> Priority support</li>
+                    </ul>
+                    <div class="example-box">
+                        <strong>Example:</strong> 50 tickets × £20 = £1,000 potential<br>
+                        <strong>Your fee:</strong> £40 (4%)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medium Tier -->
+            <div class="pricing-card popular">
+                <span class="popular-badge">Most Popular</span>
+                <div class="card-header popular">
+                    <h3>Medium Events</h3>
+                </div>
+                <div class="price-section">
+                    <p class="price">3.5%</p>
+                    <p class="price-label">of potential revenue</p>
+                </div>
+                <p class="card-description">For growing events</p>
+                <div class="features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> 51-200 attendees</li>
+                        <li><i class="fas fa-check-circle"></i> Volume discount</li>
+                        <li><i class="fas fa-check-circle"></i> Featured listing</li>
+                        <li><i class="fas fa-check-circle"></i> Analytics dashboard</li>
+                    </ul>
+                    <div class="example-box">
+                        <strong>Example:</strong> 150 tickets × £30 = £4,500 potential<br>
+                        <strong>Your fee:</strong> £157.50 (3.5%)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Large Tier -->
+            <div class="pricing-card">
+                <div class="card-header premium">
+                    <h3>Large Events</h3>
+                </div>
+                <div class="price-section">
+                    <p class="price">3%</p>
+                    <p class="price-label">201-500 attendees</p>
+                </div>
+                <p class="card-description">For major events</p>
+                <div class="features">
+                    <ul>
+                        <li><i class="fas fa-check-circle"></i> 201-500 capacity</li>
+                        <li><i class="fas fa-check-circle"></i> Better volume discount</li>
+                        <li><i class="fas fa-check-circle"></i> Premium listing</li>
+                        <li><i class="fas fa-check-circle"></i> Dedicated support</li>
+                    </ul>
+                    <div class="example-box">
+                        <strong>Example:</strong> 400 tickets × £25 = £10,000 potential<br>
+                        <strong>Your fee:</strong> £300 (3%)
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enterprise Tier -->
+        <div class="text-center mt-4">
+            <div class="d-inline-block p-4 bg-light rounded">
+                <h4><i class="fas fa-crown text-warning"></i> Enterprise Events (500+ capacity)</h4>
+                <p class="mb-0">Only <strong>2.5%</strong> fee for major events! <a href="mailto:support@jerseyhomepage.com">Contact us</a> for custom solutions.</p>
+            </div>
+        </div>
+        
+        <!-- Minimum Fee Notice -->
+        <div class="text-center mt-3">
+            <small class="text-muted">* Minimum fee of £15 applies to all paid events</small>
+        </div>
+    </div>
+</section>
+
+<!-- Process Section -->
+<div class="process-wrapper">
+    <div class="process-container">
+        <h2 class="text-center mb-2">How It Works</h2>
+        <p class="text-center text-muted mb-4">Get your event live in 5 simple steps</p>
+        <div class="process-steps">
+            <div class="process-step">
+                <div class="step-icon">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <div class="step-title fw-bold">Create Event</div>
+                <div class="step-desc text-muted small">Fill in details</div>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <div class="step-title fw-bold">See Fee</div>
+                <div class="step-desc text-muted small">Instant calculation</div>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="step-title fw-bold">Pay</div>
+                <div class="step-desc text-muted small">Secure payment</div>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <div class="step-title fw-bold">Review</div>
+                <div class="step-desc text-muted small">Quick approval</div>
+            </div>
+            <div class="process-step">
+                <div class="step-icon">
+                    <i class="fas fa-rocket"></i>
+                </div>
+                <div class="step-title fw-bold">Go Live</div>
+                <div class="step-desc text-muted small">Start selling</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Benefits -->
+<div class="benefits-section">
+    <h2 class="text-center mb-4">Why Choose Jersey Homepage</h2>
+    <div class="benefits-grid">
+        <div class="benefit-card">
+            <div class="benefit-icon text-success">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <h5>Keep 100% of Sales</h5>
+            <p class="text-muted mb-0">We charge based on capacity, not actual sales. Every ticket sold goes directly to you.</p>
+        </div>
+        <div class="benefit-card">
+            <div class="benefit-icon text-primary">
+                <i class="fas fa-percent"></i>
+            </div>
+            <h5>Volume Discounts</h5>
+            <p class="text-muted mb-0">Larger events pay lower percentages. Our success is tied to yours!</p>
+        </div>
+        <div class="benefit-card">
+            <div class="benefit-icon text-info">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h5>Transparent Pricing</h5>
+            <p class="text-muted mb-0">See your exact fee before submitting. No hidden charges or surprises.</p>
+        </div>
+    </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-wrapper">
+    <div class="cta-section">
+        <h2 class="mb-3">Ready to List Your Event?</h2>
+        <p class="lead text-muted mb-4">Join hundreds of successful organizers</p>
+        <a href="{% url 'event_management:create_event' %}" class="btn btn-primary btn-lg px-5">
+            <i class="fas fa-plus-circle me-2"></i> Create Your Event
+        </a>
+    </div>
+</div>
+
+{% endblock %}

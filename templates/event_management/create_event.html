@@ -1,0 +1,356 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+    <!-- Load event-specific CSS components -->
+    <link rel="stylesheet" href="{% static 'css/components/events.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container-custom">
+    <div class="page-header">
+        <h1 class="page-title">Create New Event</h1>
+        <p class="page-subtitle">Fill in the details below to list your event on Jersey Homepage</p>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-box">
+                <i class="fas fa-exclamation-triangle alert-icon"></i>
+                <div class="alert-content">
+                    <h4>{{ message.tags|title }}</h4>
+                    <p>{{ message }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="grid-2" style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        <div>
+            <form method="post" enctype="multipart/form-data" id="event-form">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-info-circle card-icon"></i>
+                            Basic Information
+                        </h2>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            Event Title <span class="required">*</span>
+                        </label>
+                        <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" required>
+                        {% if form.title.errors %}
+                            <div class="form-text" style="color: #ef4444;">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            Description <span class="required">*</span>
+                        </label>
+                        <textarea name="description" class="form-control" required>{{ form.description.value|default:'' }}</textarea>
+                        <p class="form-text">Include what attendees can expect, schedule, and any special requirements</p>
+                        {% if form.description.errors %}
+                            <div class="form-text" style="color: #ef4444;">{{ form.description.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Category <span class="required">*</span>
+                            </label>
+                            <select name="category" class="form-control form-select" required>
+                                <option value="">Select a category</option>
+                                {% for choice in form.category.field.choices %}
+                                    {% if choice.0 %}
+                                        <option value="{{ choice.0 }}" {% if form.category.value == choice.0|stringformat:"s" %}selected{% endif %}>
+                                            {{ choice.1 }}
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Event Image</label>
+                            <input type="file" name="image" class="form-control" accept="image/*">
+                            <p class="form-text">Upload a banner image (1200x600px)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Date and Location -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-calendar-alt card-icon"></i>
+                            Date and Location
+                        </h2>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Start Date <span class="required">*</span>
+                            </label>
+                            <input type="datetime-local" name="date" class="form-control" value="{{ form.date.value|default:'' }}" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                End Date <span class="required">*</span>
+                            </label>
+                            <input type="datetime-local" name="end_date" class="form-control" value="{{ form.end_date.value|default:'' }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            Venue <span class="required">*</span>
+                        </label>
+                        <input type="text" name="venue" class="form-control" value="{{ form.venue.value|default:'' }}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">
+                            Address <span class="required">*</span>
+                        </label>
+                        <input type="text" name="address" class="form-control" value="{{ form.address.value|default:'' }}" required>
+                        <p class="form-text">Include street, area, and postcode</p>
+                    </div>
+                </div>
+                
+                <!-- Pricing and Capacity -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <i class="fas fa-pound-sign card-icon"></i>
+                            Pricing & Capacity
+                        </h2>
+                    </div>
+                    
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Capacity <span class="required">*</span>
+                            </label>
+                            <input type="number" name="capacity" id="capacity" class="form-control" value="{{ form.capacity.value|default:'' }}" min="1" required>
+                            <p class="form-text">Maximum number of attendees</p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                Ticket Price <span class="required">*</span>
+                            </label>
+                            <input type="number" name="price" id="price" class="form-control" value="{{ form.price.value|default:'0' }}" min="0" step="0.01" required>
+                            <p class="form-text">Enter 0 for free events</p>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" name="pet_friendly" id="pet_friendly" class="form-checkbox" {% if form.pet_friendly.value %}checked{% endif %}>
+                            <label for="pet_friendly" style="font-size: 0.875rem; color: #4b5563;">Pet Friendly</label>
+                        </div>
+                        
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" name="family_friendly" id="family_friendly" class="form-checkbox" {% if form.family_friendly.value %}checked{% endif %}>
+                            <label for="family_friendly" style="font-size: 0.875rem; color: #4b5563;">Family Friendly</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <a href="{% url 'event_management:organizer_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Continue <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Pricing Sidebar -->
+        <div>
+            <div class="card">
+                <h3 class="pricing-title">
+                    <i class="fas fa-calculator" style="color: #6366f1;"></i> Listing Fee Calculator
+                </h3>
+                
+                <div class="fee-display">
+                    <p class="fee-amount" id="fee-amount">£0.00</p>
+                    <p class="fee-label" id="fee-label">Enter capacity and price</p>
+                </div>
+                
+                <!-- Fee Breakdown -->
+                <div id="fee-breakdown" style="display: none; background: #f3f4f6; padding: 1rem; border-radius: 6px; margin: 1rem 0;">
+                    <h6 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Calculation:</h6>
+                    <div style="font-size: 0.75rem; color: #6b7280;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>Potential Revenue:</span>
+                            <span id="potential-revenue">£0</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>Platform Fee:</span>
+                            <span id="fee-percentage">0%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 600; padding-top: 0.5rem; border-top: 1px solid #e5e7eb;">
+                            <span>Your Fee:</span>
+                            <span id="calculated-fee">£0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="pricing-box">
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem;">Fee Structure</p>
+                    <div class="tier-list">
+                        <div class="tier-item">
+                            <span>≤50 capacity</span>
+                            <strong>4.0%</strong>
+                        </div>
+                        <div class="tier-item">
+                            <span>51-200 capacity</span>
+                            <strong>3.5%</strong>
+                        </div>
+                        <div class="tier-item">
+                            <span>201-500 capacity</span>
+                            <strong>3.0%</strong>
+                        </div>
+                        <div class="tier-item">
+                            <span>500+ capacity</span>
+                            <strong>2.5%</strong>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+                        • Free events: No fee<br>
+                        • Minimum fee: £15 for paid events<br>
+                        • Larger events get volume discounts
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="{% url 'event_management:event-pricing' %}" target="_blank" style="font-size: 0.875rem; color: #6366f1; text-decoration: none;">
+                        View full pricing details →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FIXED JavaScript - Single script block with correct field IDs -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Correct field IDs to match your HTML
+    const capacityInput = document.getElementById('capacity');  // Changed from 'id_capacity'
+    const priceInput = document.getElementById('price');        // Changed from 'id_price'
+    
+    // Display elements
+    const feeAmountElement = document.getElementById('fee-amount');
+    const feeLabelElement = document.getElementById('fee-label');
+    const feeBreakdownElement = document.getElementById('fee-breakdown');
+    const potentialRevenueElement = document.getElementById('potential-revenue');
+    const feePercentageElement = document.getElementById('fee-percentage');
+    const calculatedFeeElement = document.getElementById('calculated-fee');
+    
+    function calculateFee() {
+        const capacity = parseInt(capacityInput?.value) || 0;
+        const price = parseFloat(priceInput?.value) || 0;
+        
+        console.log('Calculating fee for:', { capacity, price }); // Debug log
+        
+        if (capacity === 0) {
+            feeAmountElement.textContent = '£0.00';
+            feeLabelElement.textContent = 'Enter capacity and price';
+            feeBreakdownElement.style.display = 'none';
+            return;
+        }
+        
+        // Determine percentage based on capacity tiers
+        let percentage, tierName;
+        
+        if (capacity <= 50) {
+            percentage = 4.0;
+            tierName = 'Community Event';
+        } else if (capacity <= 200) {
+            percentage = 3.5;
+            tierName = 'Small Event';
+        } else if (capacity <= 500) {
+            percentage = 3.0;
+            tierName = 'Medium Event';
+        } else {
+            percentage = 2.5;
+            tierName = 'Large Event';
+        }
+        
+        // Calculate fee
+        const potentialRevenue = capacity * price;
+        let fee = potentialRevenue * (percentage / 100);
+        
+        // Apply minimum fee for paid events
+        const minimumFee = 15;
+        let feeLabel = '';
+        
+        if (price === 0) {
+            fee = 0;
+            feeLabel = 'Free Event - No Fee';
+            feeBreakdownElement.style.display = 'none';
+            feeAmountElement.textContent = 'FREE';
+        } else {
+            if (fee < minimumFee) {
+                fee = minimumFee;
+                feeLabel = `${tierName} - Minimum Fee Applied`;
+            } else {
+                feeLabel = `${tierName} - ${percentage}% of potential revenue`;
+            }
+            
+            // Show breakdown
+            feeBreakdownElement.style.display = 'block';
+            potentialRevenueElement.textContent = `£${potentialRevenue.toFixed(2)}`;
+            feePercentageElement.textContent = `${percentage}%`;
+            calculatedFeeElement.textContent = `£${fee.toFixed(2)}`;
+            
+            feeAmountElement.textContent = `£${fee.toFixed(2)}`;
+        }
+        
+        feeLabelElement.textContent = feeLabel;
+        
+        // Add a subtle animation to show the calculation updated
+        feeAmountElement.style.transform = 'scale(1.05)';
+        setTimeout(() => {
+            feeAmountElement.style.transform = 'scale(1)';
+        }, 200);
+    }
+    
+    // Add event listeners to both fields
+    if (capacityInput) {
+        capacityInput.addEventListener('input', calculateFee);
+        capacityInput.addEventListener('change', calculateFee);
+        console.log('Capacity input listener added'); // Debug log
+    } else {
+        console.error('Capacity input field not found!');
+    }
+    
+    if (priceInput) {
+        priceInput.addEventListener('input', calculateFee);
+        priceInput.addEventListener('change', calculateFee);
+        console.log('Price input listener added'); // Debug log
+    } else {
+        console.error('Price input field not found!');
+    }
+    
+    // Initial calculation on page load
+    calculateFee();
+});
+</script>
+{% endblock %}

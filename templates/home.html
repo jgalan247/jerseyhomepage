@@ -1,44 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load static %}
 
 {% block title %}Jersey Events - Discover Amazing Island Experiences{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    .hover-scale:hover {
-        transform: scale(1.05);
-    }
-    .category-card {
-        transition: all 0.3s ease;
-    }
-    .category-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    .event-card {
-        transition: all 0.3s ease;
-    }
-    .event-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    }
-    .event-card:hover .event-image {
-        transform: scale(1.1);
-    }
-    .event-image {
-        transition: transform 0.7s ease;
-    }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.5; }
-    }
-    .animate-pulse {
-        animation: pulse 2s infinite;
-    }
-</style>
+    <!-- Load homepage-specific CSS -->
+    <link rel="stylesheet" href="{% static 'css/pages/homepage.css' %}">
 {% endblock %}
 
 {% block content %}

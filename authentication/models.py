@@ -43,7 +43,7 @@ class User(AbstractUser):
 class Organizer(models.Model):
     """
     Organizer model for users who can create and manage events
-    Uses Stripe Connect for payment processing
+    Uses PayPal for payment processing (Jersey-compatible)
     """
     user = models.OneToOneField(
         User,
@@ -85,16 +85,28 @@ class Organizer(models.Model):
     )
     postal_code = models.CharField(max_length=10)
     
-    # Stripe Connect Integration
-    stripe_account_id = models.CharField(
-        max_length=255,
+    # PayPal Integration (Replacing Stripe)
+    paypal_email = models.EmailField(
         blank=True,
-        help_text="Stripe Connect Express account ID (starts with 'acct_')"
+        help_text="PayPal Business account email for receiving payments"
     )
-    stripe_onboarding_complete = models.BooleanField(
+    payment_ready = models.BooleanField(
         default=False,
-        help_text="Whether Stripe Connect onboarding is complete"
+        help_text="Whether PayPal account is set up and ready to receive payments"
     )
+    payment_setup_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When payment account was set up"
+    )
+    
+    # Legacy Stripe fields - kept for migration purposes, will be removed later
+    # stripe_account_id = models.CharField(max_length=255, blank=True)
+    # stripe_onboarding_complete = models.BooleanField(default=False)
+    # stripe_charges_enabled = models.BooleanField(default=False)
+    # stripe_payouts_enabled = models.BooleanField(default=False)
+    # stripe_details_submitted = models.BooleanField(default=False)
+    # stripe_last_update = models.DateTimeField(null=True, blank=True)
     
     # Verification
     is_verified = models.BooleanField(
@@ -151,12 +163,36 @@ class Organizer(models.Model):
     
     @property
     def can_receive_payments(self):
-        """Check if organizer can receive payments through Stripe"""
+        """Check if organizer can receive payments through PayPal"""
         return all([
-            self.stripe_account_id,
-            self.stripe_onboarding_complete,
-            self.is_verified
+            self.is_verified,
+            self.paypal_email,
+            self.payment_ready
         ])
+    
+    @property
+    def payment_setup_required(self):
+        """Check if payment setup is needed"""
+        return not self.paypal_email or not self.payment_ready
+    
+    @property
+    def payment_status_display(self):
+        """Human-readable payment status"""
+        if not self.paypal_email:
+            return "Not Started"
+        elif not self.payment_ready:
+            return "Incomplete"
+        else:
+            return "Active"
+    
+    @property
+    def stripe_onboarding_complete(self):
+        """Legacy property for backward compatibility - maps to payment_ready"""
+        return self.payment_ready
+    
+    def get_platform_fee_amount(self, total_amount):
+        """Calculate platform fee for a given amount"""
+        return (total_amount * self.commission_rate) / 100
     
     def save(self, *args, **kwargs):
         # Auto-verify if user is staff/superuser
@@ -164,5 +200,9 @@ class Organizer(models.Model):
             self.is_verified = True
             if not self.verified_at:
                 self.verified_at = timezone.now()
+        
+        # Set payment setup date when PayPal is configured
+        if self.paypal_email and self.payment_ready and not self.payment_setup_date:
+            self.payment_setup_date = timezone.now()
         
         super().save(*args, **kwargs)

@@ -1,0 +1,70 @@
+[
+  {
+    "model": "event_management.platformplan",
+    "pk": 1,
+    "fields": {
+      "name": "Starter",
+      "slug": "starter",
+      "max_tickets": 100,
+      "price_per_event": "25.00",
+      "price_per_month": "50.00",
+      "price_per_year": "500.00",
+      "features": {
+        "analytics": "basic",
+        "support": "email",
+        "custom_branding": false,
+        "featured_listing": false,
+        "email_attendees": true,
+        "max_ticket_types": 3
+      },
+      "is_active": true,
+      "display_order": 1
+    }
+  },
+  {
+    "model": "event_management.platformplan",
+    "pk": 2,
+    "fields": {
+      "name": "Growth",
+      "slug": "growth",
+      "max_tickets": 500,
+      "price_per_event": "75.00",
+      "price_per_month": "150.00",
+      "price_per_year": "1500.00",
+      "features": {
+        "analytics": "advanced",
+        "support": "priority",
+        "custom_branding": true,
+        "featured_listing": true,
+        "email_attendees": true,
+        "max_ticket_types": 10
+      },
+      "is_active": true,
+      "display_order": 2
+    }
+  },
+  {
+    "model": "event_management.platformplan",
+    "pk": 3,
+    "fields": {
+      "name": "Pro",
+      "slug": "pro",
+      "max_tickets": -1,
+      "price_per_event": "150.00",
+      "price_per_month": "300.00",
+      "price_per_year": "3000.00",
+      "features": {
+        "analytics": "advanced",
+        "support": "priority",
+        "custom_branding": true,
+        "featured_listing": true,
+        "email_attendees": true,
+        "max_ticket_types": -1,
+        "api_access": true,
+        "white_label": true
+      },
+      "is_active": true,
+      "display_order": 3
+    }
+  }
+]

@@ -206,3 +206,34 @@ class SignUpForm(UserCreationForm):
                 )
         
         return user
+
+class OrganizerRegistrationForm(forms.ModelForm):
+    """Form for users to register as event organizers"""
+    
+    terms_accepted = forms.BooleanField(
+        required=True,
+        label="I agree to the organizer terms and conditions"
+    )
+    
+    class Meta:
+        model = Organizer
+        fields = ['company_name', 'description', 'website', 'business_phone']
+        widgets = {
+            'company_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Your company or organization name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Tell us about your organization and the types of events you plan to host'
+            }),
+            'website': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'https://yourcompany.com (optional)'
+            }),
+            'business_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': '+44 1534 123456'
+            }),
+        }

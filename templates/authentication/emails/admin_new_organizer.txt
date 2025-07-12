@@ -1,0 +1,26 @@
+New Organizer Registration Pending Approval
+
+A new organizer has registered and is awaiting approval:
+
+ORGANIZER DETAILS:
+Company: {{ organizer.company_name }}
+Contact: {{ organizer.user.get_full_name }} ({{ organizer.user.email }})
+Business Email: {{ organizer.business_email }}
+Phone: {{ organizer.business_phone|default:"Not provided" }}
+Address: {{ organizer.address_line_1 }}{% if organizer.address_line_2 %}, {{ organizer.address_line_2 }}{% endif %}
+         {{ organizer.city }}, {{ organizer.parish }} {{ organizer.postal_code }}
+Website: {{ organizer.website|default:"Not provided" }}
+VAT Number: {{ organizer.vat_number|default:"Not provided" }}
+Registration Date: {{ organizer.created_at|date:"F j, Y g:i A" }}
+PayPal Setup: {% if organizer.payment_ready %}Completed{% else %}Pending{% endif %}
+
+{% if organizer.description %}
+BUSINESS DESCRIPTION:
+{{ organizer.description }}
+{% endif %}
+
+REVIEW AT: {{ admin_url }}
+
+---
+This is an automated notification from {{ site_name }}.
+Please review the organizer details and approve or reject the application.

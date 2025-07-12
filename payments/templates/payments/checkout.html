@@ -1,0 +1,239 @@
+<!-- payments/templates/payments/checkout.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Checkout - {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Checkout</h1>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Event Details -->
+        <div>
+            <h2 class="text-xl font-semibold mb-4">Event Details</h2>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-semibold text-lg">{{ event.title }}</h3>
+                <p class="text-gray-600 mt-2">{{ event.start_date|date:"F d, Y" }} at {{ event.start_time|time:"g:i A" }}</p>
+                <p class="text-gray-600">{{ event.venue_name }}</p>
+                
+                <div class="mt-6">
+                    <h4 class="font-semibold mb-3">Select Tickets:</h4>
+                    {% for ticket_type in ticket_types %}
+                    <div class="flex justify-between items-center mb-3 p-3 border rounded">
+                        <div>
+                            <p class="font-medium">{{ ticket_type.name }}</p>
+                            <p class="text-sm text-gray-600">£{{ ticket_type.price }}</p>
+                        </div>
+                        <div class="flex items-center">
+                            <button type="button" class="decrease-qty px-2 py-1 border rounded" data-ticket="{{ ticket_type.id }}">-</button>
+                            <input type="number" 
+                                   id="ticket-{{ ticket_type.id }}" 
+                                   class="ticket-quantity mx-2 w-16 text-center border rounded" 
+                                   value="0" 
+                                   min="0" 
+                                   max="{{ ticket_type.available_quantity }}"
+                                   data-price="{{ ticket_type.price }}"
+                                   data-name="{{ ticket_type.name }}">
+                            <button type="button" class="increase-qty px-2 py-1 border rounded" data-ticket="{{ ticket_type.id }}">+</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Summary -->
+        <div>
+            <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div id="order-summary" class="mb-6">
+                    <p class="text-gray-600">No tickets selected</p>
+                </div>
+                
+                <div class="border-t pt-4">
+                    <div class="flex justify-between font-semibold text-lg">
+                        <span>Total:</span>
+                        <span id="total-amount">£0.00</span>
+                    </div>
+                </div>
+                
+                {% if not user.is_authenticated %}
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                    <input type="email" 
+                           id="buyer-email" 
+                           class="w-full px-3 py-2 border rounded-md" 
+                           placeholder="your@email.com"
+                           required>
+                </div>
+                {% endif %}
+                
+                <!-- PayPal Button Container -->
+                <div id="paypal-button-container" class="mt-6"></div>
+                
+                <!-- Loading spinner -->
+                <div id="loading-spinner" class="hidden text-center py-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">Processing...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=GBP&intent=capture&enable-funding=venmo,paylater"></script>
+
+<script>
+    // Calculate order total
+    function calculateTotal() {
+        let total = 0;
+        let orderItems = [];
+        
+        document.querySelectorAll('.ticket-quantity').forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price);
+            const name = input.dataset.name;
+            const ticketId = input.id.replace('ticket-', '');
+            
+            if (quantity > 0) {
+                total += quantity * price;
+                orderItems.push({
+                    ticket_type_id: ticketId,
+                    name: name,
+                    quantity: quantity,
+                    price: price,
+                    subtotal: quantity * price
+                });
+            }
+        });
+        
+        // Update UI
+        document.getElementById('total-amount').textContent = `£${total.toFixed(2)}`;
+        
+        // Update order summary
+        const summaryDiv = document.getElementById('order-summary');
+        if (orderItems.length > 0) {
+            summaryDiv.innerHTML = orderItems.map(item => `
+                <div class="flex justify-between mb-2">
+                    <span>${item.quantity}x ${item.name}</span>
+                    <span>£${item.subtotal.toFixed(2)}</span>
+                </div>
+            `).join('');
+        } else {
+            summaryDiv.innerHTML = '<p class="text-gray-600">No tickets selected</p>';
+        }
+        
+        return { total, orderItems };
+    }
+    
+    // Quantity controls
+    document.querySelectorAll('.increase-qty').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ticketId = e.target.dataset.ticket;
+            const input = document.getElementById(`ticket-${ticketId}`);
+            input.value = Math.min(parseInt(input.value) + 1, parseInt(input.max));
+            calculateTotal();
+        });
+    });
+    
+    document.querySelectorAll('.decrease-qty').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ticketId = e.target.dataset.ticket;
+            const input = document.getElementById(`ticket-${ticketId}`);
+            input.value = Math.max(parseInt(input.value) - 1, 0);
+            calculateTotal();
+        });
+    });
+    
+    document.querySelectorAll('.ticket-quantity').forEach(input => {
+        input.addEventListener('change', calculateTotal);
+    });
+    
+    // PayPal Integration
+    paypal.Buttons({
+        createOrder: function(data, actions) {
+            const { total, orderItems } = calculateTotal();
+            
+            if (orderItems.length === 0) {
+                alert('Please select at least one ticket');
+                return false;
+            }
+            
+            {% if not user.is_authenticated %}
+            const email = document.getElementById('buyer-email').value;
+            if (!email) {
+                alert('Please enter your email address');
+                return false;
+            }
+            {% endif %}
+            
+            // Show loading spinner
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            
+            // Call your server to create the order
+            return fetch('{% url "payments:create_paypal_order" %}', {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    event_id: {{ event.id }},
+                    tickets: orderItems,
+                    {% if user.is_authenticated %}
+                    email: '{{ user.email }}'
+                    {% else %}
+                    email: document.getElementById('buyer-email').value
+                    {% endif %}
+                })
+            }).then(function(res) {
+                return res.json();
+            }).then(function(orderData) {
+                document.getElementById('loading-spinner').classList.add('hidden');
+                if (orderData.error) {
+                    throw new Error(orderData.error);
+                }
+                return orderData.id;
+            });
+        },
+        
+        onApprove: function(data, actions) {
+            document.getElementById('loading-spinner').classList.remove('hidden');
+            
+            // Call your server to capture the order
+            return fetch('{% url "payments:capture_paypal_order" %}', {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    orderID: data.orderID
+                })
+            }).then(function(res) {
+                return res.json();
+            }).then(function(details) {
+                if (details.error) {
+                    throw new Error(details.error);
+                }
+                // Redirect to success page
+                window.location.href = details.redirect_url;
+            });
+        },
+        
+        onError: function(err) {
+            document.getElementById('loading-spinner').classList.add('hidden');
+            console.error('PayPal error:', err);
+            alert('Payment failed. Please try again or contact support.');
+        },
+        
+        onCancel: function(data) {
+            document.getElementById('loading-spinner').classList.add('hidden');
+            // User cancelled the payment
+            console.log('Payment cancelled by user');
+        }
+    }).render('#paypal-button-container');
+</script>
+{% endblock %}

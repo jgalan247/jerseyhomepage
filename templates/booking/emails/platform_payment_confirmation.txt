@@ -1,0 +1,38 @@
+Payment Confirmation - Jersey Homepage Events
+=============================================
+
+Dear {{ organizer.company_name }},
+
+Thank you for your payment! Your event listing fee has been successfully processed.
+
+PAYMENT DETAILS:
+----------------
+Event: {{ event.title }}
+Amount Paid: £{{ amount }}
+Payment Date: {{ event.paid_at|date:"d M Y H:i" }}
+Reference: {{ event.paypal_order_id }}
+
+EVENT STATUS:
+-------------
+✓ Your event is now LIVE and accepting ticket sales!
+Event Date: {{ event.start_date|date:"d M Y" }}
+Location: {{ event.location }}
+
+WHAT'S NEXT?
+------------
+• Your event is now visible to the public
+• Attendees can purchase tickets directly
+• You'll receive ticket revenue directly to your PayPal account
+• Track sales and manage attendees from your dashboard
+
+View Your Event: {{ event_url }}
+Go to Dashboard: {{ dashboard_url }}
+
+If you have any questions, please don't hesitate to contact our support team.
+
+Best regards,
+The Jersey Homepage Team
+
+---
+This is an automated email. Please do not reply directly to this message.
+© {% now "Y" %} Jersey Homepage Events. All rights reserved.
