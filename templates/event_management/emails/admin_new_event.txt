@@ -1,0 +1,25 @@
+New Event Pending Approval
+
+A new event has been submitted and is awaiting approval:
+
+EVENT DETAILS:
+Title: {{ event.title }}
+Organizer: {{ event.organizer.company_name }} ({{ event.organizer.user.email }})
+Date: {{ event.date|date:"F j, Y g:i A" }}
+Venue: {{ event.venue }}
+Category: {{ event.category|default:"Not specified" }}
+Max Attendees: {{ event.max_attendees|default:"Unlimited" }}
+Created: {{ event.created_at|date:"F j, Y g:i A" }}
+Status: {% if event.is_active %}Active{% else %}Pending Approval{% endif %}
+
+{% if event.description %}
+EVENT DESCRIPTION:
+{{ event.description|truncatewords:50 }}
+{% endif %}
+
+REVIEW AT: {{ admin_url }}
+VIEW EVENT: {{ event_url }}
+
+---
+This is an automated notification from {{ site_name }}.
+Please review the event and approve or reject the submission.
