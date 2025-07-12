@@ -64,3 +64,18 @@ docker-compose exec web python manage.py test
 This project is proprietary software for Jersey Homepage.
 
 Built with ❤️ for Jersey
+
+## Admin Notification System
+
+Automatic email notifications are sent to administrators when:
+- New organizers register (unverified accounts)
+- New events are created (inactive/pending approval)
+
+### Configuration
+- Set `ADMIN_NOTIFICATION_EMAILS` in settings.py
+- Notifications include direct links to admin approval pages
+- Both HTML and plain text email formats supported
+
+### Testing
+Run `python manage.py shell` and use the notification functions directly for testing.
+
