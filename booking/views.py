@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.urls import reverse
 from django.db import transaction, models
@@ -280,7 +279,6 @@ def checkout_view(request):
 
 
 @require_POST
-@csrf_exempt
 def create_ticket_order(request):
     """Create PayPal order for ticket purchase"""
     try:
@@ -328,7 +326,6 @@ def create_ticket_order(request):
 
 
 @require_POST
-@csrf_exempt
 def capture_ticket_payment(request):
     """Capture PayPal payment for tickets - FIXED for TicketType"""
     try:
