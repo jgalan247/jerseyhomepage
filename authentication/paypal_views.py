@@ -265,9 +265,58 @@ def paypal_webhook(request):
 
 def _verify_webhook_signature(request):
     """Verify PayPal webhook signature"""
-    # PayPal webhook verification implementation
-    # See: https://developer.paypal.com/docs/api/webhooks/v1/#verify-webhook-signature
-    return True  # Implement actual verification
+    if getattr(settings, 'SKIP_WEBHOOK_VERIFICATION', False):
+        logger.warning("Skipping PayPal webhook signature verification")
+        return True
+
+    required_headers = [
+        'HTTP_PAYPAL_TRANSMISSION_ID',
+        'HTTP_PAYPAL_TRANSMISSION_TIME',
+        'HTTP_PAYPAL_CERT_URL',
+        'HTTP_PAYPAL_AUTH_ALGO',
+        'HTTP_PAYPAL_TRANSMISSION_SIG',
+    ]
+
+    if not all(h in request.META for h in required_headers):
+        logger.error("Missing PayPal webhook headers")
+        return False
+
+    client = PayPalClient()
+    try:
+        token = client.get_access_token()
+    except Exception as e:
+        logger.error(f"Failed to obtain PayPal token: {e}")
+        return False
+
+    payload = {
+        "transmission_id": request.META['HTTP_PAYPAL_TRANSMISSION_ID'],
+        "transmission_time": request.META['HTTP_PAYPAL_TRANSMISSION_TIME'],
+        "cert_url": request.META['HTTP_PAYPAL_CERT_URL'],
+        "auth_algo": request.META['HTTP_PAYPAL_AUTH_ALGO'],
+        "transmission_sig": request.META['HTTP_PAYPAL_TRANSMISSION_SIG'],
+        "webhook_id": settings.PAYPAL_WEBHOOK_ID,
+        "webhook_event": json.loads(request.body.decode('utf-8') or '{}'),
+    }
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {token}',
+    }
+
+    response = requests.post(
+        f"{client.base_url}/v1/notifications/verify-webhook-signature",
+        headers=headers,
+        json=payload
+    )
+
+    if response.status_code == 200:
+        verification_status = response.json().get('verification_status')
+        return verification_status == 'SUCCESS'
+
+    logger.error(
+        f"Webhook verification API failed: {response.status_code} {response.text}"
+    )
+    return False
 
 
 def _fetch_merchant_status(organizer):

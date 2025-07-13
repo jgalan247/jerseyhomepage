@@ -11,6 +11,8 @@ git clone https://github.com/yourusername/jersey-homepage.git
 cd jersey-homepage
 1. Copy the environment file:
 cp .env.example .env
+   - Edit `.env` and add your PayPal credentials (`PAYPAL_CLIENT_ID`,
+     `PAYPAL_CLIENT_SECRET`, `PAYPAL_PARTNER_ID`, and `PAYPAL_WEBHOOK_ID`).
 1. Build and start the Docker containers:
 docker-compose up --build
 1. Run migrations:
