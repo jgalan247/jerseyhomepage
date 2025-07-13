@@ -24,8 +24,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-dev-key-change-this
+      - DEBUG=False
       - DATABASE_URL=postgres://jersey_user:jersey_secure_pass_123@db:5432/jersey_roothp
       - STRIPE_PUBLIC_KEY=${STRIPE_PUBLIC_KEY:-pk_test_dummy}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_dummy}
