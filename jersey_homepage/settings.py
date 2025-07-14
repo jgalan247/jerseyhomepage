@@ -212,16 +212,16 @@ PAYPAL_BRAND_NAME = env('PAYPAL_BRAND_NAME', default='Jersey Events')  # NEW: Ad
 # Use sandbox for development, live for production
 if PAYPAL_MODE == 'sandbox':  # Changed from DEBUG to use PAYPAL_MODE
     PAYPAL_BASE_URL = 'https://api-m.sandbox.paypal.com'
-    #PAYPAL_WEBHOOK_ID = env('PAYPAL_SANDBOX_WEBHOOK_ID', default='')
 else:
     PAYPAL_BASE_URL = 'https://api-m.paypal.com'
-    #PAYPAL_WEBHOOK_ID = env('PAYPAL_LIVE_WEBHOOK_ID', default='')
     # Override with live credentials if available
     PAYPAL_CLIENT_ID = env('PAYPAL_LIVE_CLIENT_ID', default=PAYPAL_CLIENT_ID)
     PAYPAL_CLIENT_SECRET = env('PAYPAL_LIVE_CLIENT_SECRET', default=PAYPAL_CLIENT_SECRET)
 
 
+
 PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
+
 # Platform settings
 PLATFORM_FEE_PERCENTAGE = env('PLATFORM_FEE_PERCENTAGE', default=5.0)
 SITE_URL = env('SITE_URL', default='http://localhost:8000')
@@ -285,11 +285,21 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'strict-origin'
+    X_FRAME_OPTIONS = 'DENY'
+
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_REFERRER_POLICY = 'same-origin'
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Use SMTP even in DEBUG
