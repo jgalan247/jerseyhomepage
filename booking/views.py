@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
 from django.urls import reverse
 from django.db import transaction, models
@@ -18,6 +17,7 @@ import logging
 from event_management.models import Event, TicketType
 from .models import Cart, CartItem, Order, OrderItem, Ticket
 from .utils import send_order_confirmation_email, generate_tickets_pdf, generate_single_ticket_pdf
+from payments.paypal_client import PayPalClient, format_amount
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +280,6 @@ def checkout_view(request):
 
 
 @require_POST
-@csrf_exempt
 def create_ticket_order(request):
     """Create PayPal order for ticket purchase"""
     try:
@@ -308,15 +307,29 @@ def create_ticket_order(request):
             'create_account': data.get('create_account', False)
         }
         
-        # TODO: Create real PayPal order here using paypalrestsdk
-        # For now, return mock order
-        user_id = request.user.id if request.user.is_authenticated else 'guest'
-        mock_order_id = f'TICKETS-{user_id}-{timezone.now().timestamp()}'
-        
-        logger.info(f"Creating ticket order: {mock_order_id}, total: £{total}, customer: {data.get('email')}")
-        
+        # Create PayPal order using SDK
+        paypal_client = PayPalClient()
+        order_data = {
+            'amount': format_amount(total),
+            'currency': 'GBP',
+            'description': 'Event ticket purchase',
+            'return_url': request.build_absolute_uri(reverse('booking:checkout')),
+            'cancel_url': request.build_absolute_uri(reverse('booking:checkout')),
+        }
+
+        pp_result = paypal_client.create_order(order_data)
+
+        if not pp_result.get('success'):
+            logger.error(f"PayPal order creation failed: {pp_result.get('error')}")
+            return JsonResponse({'error': 'Failed to create PayPal order'}, status=500)
+
+        order_id = pp_result.get('order_id')
+        logger.info(
+            f"Creating ticket order: {order_id}, total: £{total}, customer: {data.get('email')}"
+        )
+
         return JsonResponse({
-            'id': mock_order_id,
+            'id': order_id,
             'amount': str(total)
         })
         
@@ -328,7 +341,6 @@ def create_ticket_order(request):
 
 
 @require_POST
-@csrf_exempt
 def capture_ticket_payment(request):
     """Capture PayPal payment for tickets - FIXED for TicketType"""
     try:
@@ -348,9 +360,20 @@ def capture_ticket_payment(request):
         if cart.total_items == 0:
             return JsonResponse({'error': 'Cart is empty'}, status=400)
         
-        # TODO: Verify payment with PayPal API
-        # For now, just create the order
-        
+        # Verify and capture the payment with PayPal
+        paypal_client = PayPalClient()
+        capture_result = paypal_client.capture_order(order_id)
+
+        if not capture_result.get('success') or capture_result.get('status') != 'COMPLETED':
+            logger.error(
+                f"PayPal capture failed for {order_id}: {capture_result.get('error')}"
+            )
+            return JsonResponse({'error': 'Payment verification failed'}, status=400)
+
+        payer_id = None
+        if capture_result.get('response') and getattr(capture_result['response'], 'payer', None):
+            payer_id = capture_result['response'].payer.payer_id
+
         # Create booking order
         with transaction.atomic():
             order = Order.objects.create(
@@ -360,6 +383,8 @@ def capture_ticket_payment(request):
                 last_name=checkout_data.get('last_name'),
                 phone=checkout_data.get('phone', ''),
                 paypal_order_id=order_id,
+                paypal_capture_id=capture_result.get('capture_id', ''),
+                paypal_payer_id=payer_id or '',
                 status='confirmed',
                 paid_at=timezone.now(),
                 total_amount=cart.total_price

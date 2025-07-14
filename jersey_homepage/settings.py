@@ -25,16 +25,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-key-change-this')
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'f345b3a97362.ngrok-free.app']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-BASE_URL = 'https://f345b3a97362.ngrok-free.app'
+BASE_URL = config('BASE_URL', default='http://localhost:8000')
 
-CSRF_TRUSTED_ORIGINS = ['https://f345b3a97362.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:8000', cast=Csv())
 # CSRF TRUSTED ORIGINS - Required for Django 4.0+
 #CSRF_TRUSTED_ORIGINS = [
 #    'http://localhost:8000',
@@ -219,7 +219,9 @@ else:
     PAYPAL_CLIENT_SECRET = env('PAYPAL_LIVE_CLIENT_SECRET', default=PAYPAL_CLIENT_SECRET)
 
 
-PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID', default='')
+
+PAYPAL_WEBHOOK_ID = env('PAYPAL_WEBHOOK_ID')
+
 # Platform settings
 PLATFORM_FEE_PERCENTAGE = env('PLATFORM_FEE_PERCENTAGE', default=5.0)
 SITE_URL = env('SITE_URL', default='http://localhost:8000')
@@ -283,6 +285,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
+
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
     SECURE_HSTS_SECONDS = 31536000
@@ -290,6 +293,13 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_REFERRER_POLICY = 'strict-origin'
     X_FRAME_OPTIONS = 'DENY'
+
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'same-origin'
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Use SMTP even in DEBUG
